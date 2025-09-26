@@ -13,6 +13,9 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        inter: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -22,6 +25,8 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          hover: "hsl(var(--primary-hover))",
+          glow: "hsl(var(--primary-glow))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -57,6 +62,14 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // QSC Custom Colors
+        engineering: {
+          gray: "hsl(var(--engineering-gray))",
+          dark: "hsl(var(--technical-dark))",
+        },
+        success: "hsl(var(--success-green))",
+        warning: "hsl(var(--warning-amber))",
+        grid: "hsl(var(--grid-line))",
       },
       borderRadius: {
         lg: "var(--radius)",
