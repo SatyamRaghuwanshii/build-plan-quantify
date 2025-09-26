@@ -12,9 +12,11 @@ import {
   Download, 
   RefreshCw,
   Building,
-  DollarSign
+  DollarSign,
+  ShoppingCart
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
 
 interface MaterialCosts {
   [key: string]: number;
@@ -348,6 +350,15 @@ const Calculator = () => {
                 <Button variant="outline" onClick={handleExport}>
                   <Download className="h-4 w-4 mr-2" />
                   Export PDF
+                </Button>
+              </div>
+
+              <div className="pt-4 border-t">
+                <Button className="w-full" size="lg" asChild>
+                  <Link to="/marketplace" className="flex items-center gap-2">
+                    <ShoppingCart className="h-4 w-4" />
+                    Buy Materials Now
+                  </Link>
                 </Button>
               </div>
             </div>

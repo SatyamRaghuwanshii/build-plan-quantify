@@ -9,31 +9,41 @@ import {
   CheckCircle,
   Building2,
   Ruler,
-  BarChart3
+  BarChart3,
+  ShoppingCart,
+  Users,
+  Bot
 } from "lucide-react";
 
 const Home = () => {
   const features = [
     {
       icon: Calculator,
-      title: "Material Calculator",
-      description: "Calculate precise quantities for concrete, bricks, and other construction materials with real-time cost estimation.",
+      title: "Advanced Calculator",
+      description: "Calculate precise quantities for concrete, bricks, steel, and other construction materials with real-time cost estimation.",
       href: "/calculator",
       color: "bg-blue-500",
     },
     {
-      icon: PenTool,
-      title: "Floor Plan Designer", 
-      description: "Create interactive floor plans with drawing tools, dimension calculations, and export capabilities.",
-      href: "/floor-plan",
+      icon: ShoppingCart,
+      title: "Material Marketplace",
+      description: "Buy construction materials at the best prices from verified suppliers with price comparison and delivery tracking.",
+      href: "/marketplace",
       color: "bg-emerald-500",
     },
     {
-      icon: FolderOpen,
-      title: "Project Management",
-      description: "Organize and track all your construction projects with detailed reports and cost breakdowns.",
-      href: "/projects",
+      icon: Users,
+      title: "Hire Experts",
+      description: "Connect with verified engineers, architects, contractors, and designers with ratings and reviews.",
+      href: "/hiring",
       color: "bg-purple-500",
+    },
+    {
+      icon: Bot,
+      title: "AI Assistant",
+      description: "Get intelligent recommendations for materials, pricing, hiring experts, and construction planning guidance.",
+      href: "/ai-assistant",
+      color: "bg-orange-500",
     },
   ];
 
@@ -71,13 +81,25 @@ const Home = () => {
                 <Button size="lg" variant="secondary" className="text-lg px-8" asChild>
                   <Link to="/calculator" className="flex items-center gap-2">
                     <Calculator className="h-5 w-5" />
-                    Start Calculating
+                    Start Calculation
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" className="text-lg px-8 bg-white/10 border-white/30 text-white hover:bg-white/20" asChild>
-                  <Link to="/floor-plan" className="flex items-center gap-2">
-                    <PenTool className="h-5 w-5" />
-                    Design Floor Plan
+                  <Link to="/marketplace" className="flex items-center gap-2">
+                    <ShoppingCart className="h-5 w-5" />
+                    Buy Materials
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" className="text-lg px-8 bg-white/10 border-white/30 text-white hover:bg-white/20" asChild>
+                  <Link to="/hiring" className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Hire Experts
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" className="text-lg px-8 bg-white/10 border-white/30 text-white hover:bg-white/20" asChild>
+                  <Link to="/ai-assistant" className="flex items-center gap-2">
+                    <Bot className="h-5 w-5" />
+                    Ask AI
                   </Link>
                 </Button>
               </div>
@@ -107,16 +129,16 @@ const Home = () => {
       <section className="py-20 bg-engineering-gray/30">
         <div className="container px-4 mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-              Professional Tools for Construction Professionals
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Everything you need to manage construction quantities, design floor plans, 
-              and track project progress in one integrated platform.
-            </p>
+          <h2 className="text-3xl lg:text-4xl font-bold mb-4">
+            Complete Construction Platform
+          </h2>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            Calculate materials, buy at best prices, hire verified experts, and get AI-powered 
+            guidance for your construction projects - all in one platform.
+          </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (

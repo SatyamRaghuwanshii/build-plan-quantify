@@ -7,6 +7,9 @@ import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Calculator from "./pages/Calculator";
 import FloorPlan from "./pages/FloorPlan";
+import Marketplace from "./pages/Marketplace";
+import Hiring from "./pages/Hiring";
+import AIAssistant from "./pages/AIAssistant";
 import Projects from "./pages/Projects";
 import NotFound from "./pages/NotFound";
 
@@ -22,6 +25,9 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/calculator" element={<Calculator />} />
+            <Route path="/marketplace" element={<Marketplace />} />
+            <Route path="/hiring" element={<Hiring />} />
+            <Route path="/ai-assistant" element={<AIAssistant />} />
             <Route path="/floor-plan" element={<FloorPlan />} />
             <Route path="/projects" element={<Projects />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

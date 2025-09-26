@@ -8,7 +8,10 @@ import {
   Menu, 
   X,
   Ruler,
-  Building
+  Building,
+  ShoppingCart,
+  Users,
+  Bot
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,7 +22,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const navigation = [
     { name: 'Home', href: '/', icon: Building },
     { name: 'Calculator', href: '/calculator', icon: Calculator },
-    { name: 'Floor Plan', href: '/floor-plan', icon: PenTool },
+    { name: 'Marketplace', href: '/marketplace', icon: ShoppingCart },
+    { name: 'Hire Experts', href: '/hiring', icon: Users },
+    { name: 'AI Assistant', href: '/ai-assistant', icon: Bot },
     { name: 'Projects', href: '/projects', icon: FolderOpen },
   ];
 
