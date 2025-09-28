@@ -75,48 +75,95 @@ const AIAssistant = () => {
     setInputMessage("");
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = generateAIResponse(inputMessage);
+    try {
+      // Call the Supabase edge function
+      const response = await fetch('https://krwahbbojypmjuzklovh.supabase.co/functions/v1/ai-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: inputMessage }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      const aiResponse: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: data.response,
+        timestamp: new Date(),
+        suggestions: generateSuggestions(inputMessage)
+      };
+
       setMessages(prev => [...prev, aiResponse]);
+    } catch (error) {
+      console.error('Error calling AI:', error);
+      toast({
+        title: "Error",
+        description: "Failed to get AI response. Please try again.",
+        variant: "destructive",
+      });
+      
+      // Fallback to mock response
+      const fallbackResponse = generateAIResponse(inputMessage);
+      setMessages(prev => [...prev, fallbackResponse]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
+  };
+
+  const generateSuggestions = (userInput: string): QuickAction[] => {
+    const lowerInput = userInput.toLowerCase();
+    
+    if (lowerInput.includes("material") || lowerInput.includes("calculate")) {
+      return [
+        { label: "Open Calculator", action: "calculate", icon: Calculator, href: "/calculator" },
+        { label: "Find Suppliers", action: "deals", icon: ShoppingCart, href: "/marketplace" }
+      ];
+    } else if (lowerInput.includes("price") || lowerInput.includes("cost") || lowerInput.includes("deal")) {
+      return [
+        { label: "View Best Deals", action: "deals", icon: ShoppingCart, href: "/marketplace" },
+        { label: "Compare Prices", action: "compare", icon: Target }
+      ];
+    } else if (lowerInput.includes("hire") || lowerInput.includes("engineer") || lowerInput.includes("contractor")) {
+      return [
+        { label: "Browse Experts", action: "hire", icon: Users, href: "/hiring" },
+        { label: "Filter by Specialty", action: "filter", icon: Target }
+      ];
+    } else if (lowerInput.includes("plan") || lowerInput.includes("project") || lowerInput.includes("start")) {
+      return [
+        { label: "Start Planning", action: "plan", icon: Target },
+        { label: "Calculate Materials", action: "calculate", icon: Calculator, href: "/calculator" },
+        { label: "View Projects", action: "projects", icon: Target, href: "/projects" }
+      ];
+    }
+    
+    return quickActions;
   };
 
   const generateAIResponse = (userInput: string): Message => {
     const lowerInput = userInput.toLowerCase();
     
     let response = "";
-    let suggestions: QuickAction[] = [];
 
     if (lowerInput.includes("material") || lowerInput.includes("calculate")) {
       response = "I can help you calculate materials for your construction project. Based on your project dimensions, I'll estimate quantities for concrete, steel, bricks, and other materials. Would you like me to guide you through the calculator or help you find the best suppliers for these materials?";
-      suggestions = [
-        { label: "Open Calculator", action: "calculate", icon: Calculator, href: "/calculator" },
-        { label: "Find Suppliers", action: "deals", icon: ShoppingCart, href: "/marketplace" }
-      ];
     } else if (lowerInput.includes("price") || lowerInput.includes("cost") || lowerInput.includes("deal")) {
       response = "For the best material prices, I recommend checking our marketplace where you can compare prices from multiple suppliers. Currently, we have great deals on cement (10% off), ceramic tiles (15% off), and steel rebar from top-rated vendors. Would you like me to show you the best deals available?";
-      suggestions = [
-        { label: "View Best Deals", action: "deals", icon: ShoppingCart, href: "/marketplace" },
-        { label: "Compare Prices", action: "compare", icon: Target }
-      ];
     } else if (lowerInput.includes("hire") || lowerInput.includes("engineer") || lowerInput.includes("contractor")) {
       response = "I can help you find qualified engineers and contractors for your project. We have verified professionals including structural engineers, civil engineers, architects, and contractors with ratings and reviews. What type of expert are you looking for?";
-      suggestions = [
-        { label: "Browse Experts", action: "hire", icon: Users, href: "/hiring" },
-        { label: "Filter by Specialty", action: "filter", icon: Target }
-      ];
     } else if (lowerInput.includes("plan") || lowerInput.includes("project") || lowerInput.includes("start")) {
       response = "Great! Let me help you plan your construction project step by step: 1) First, calculate your material requirements 2) Get quotes from suppliers 3) Hire qualified professionals 4) Create a timeline and budget. Which step would you like to start with?";
-      suggestions = [
-        { label: "Start Planning", action: "plan", icon: Target },
-        { label: "Calculate Materials", action: "calculate", icon: Calculator, href: "/calculator" },
-        { label: "View Projects", action: "projects", icon: Target, href: "/projects" }
-      ];
     } else {
       response = "I understand you're working on a construction project. I can assist you with material calculations, finding the best prices from suppliers, connecting you with qualified professionals, and providing project planning advice. What specific area would you like help with?";
-      suggestions = quickActions;
     }
 
     return {
@@ -124,7 +171,7 @@ const AIAssistant = () => {
       role: "assistant",
       content: response,
       timestamp: new Date(),
-      suggestions
+      suggestions: generateSuggestions(userInput)
     };
   };
 
