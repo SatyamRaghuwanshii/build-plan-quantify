@@ -19,21 +19,26 @@ serve(async (req) => {
       throw new Error('Message is required');
     }
 
-    const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
-    if (!googleApiKey) {
-      throw new Error('Google API key not configured');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (!lovableApiKey) {
+      throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Call Google Gemini API
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${googleApiKey}`, {
+    console.log('Calling Lovable AI Gateway...');
+
+    // Call Lovable AI Gateway
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `You are an AI Construction Assistant specializing in helping users with construction projects. You provide helpful advice on:
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an AI Construction Assistant specializing in helping users with construction projects. You provide helpful advice on:
 
 - Material calculations and quantity estimation
 - Finding the best deals and suppliers
@@ -41,33 +46,38 @@ serve(async (req) => {
 - Project planning and timeline management
 - Construction best practices and safety guidelines
 
-Keep responses practical, professional, and focused on construction topics. When appropriate, suggest specific actions like using the calculator tool, browsing the marketplace, or hiring experts.
-
-User question: ${message}`
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024,
-        }
+Keep responses practical, professional, and focused on construction topics. When appropriate, suggest specific actions like using the calculator tool, browsing the marketplace, or hiring experts.`
+          },
+          {
+            role: 'user',
+            content: message
+          }
+        ],
       }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Google API error:', errorData);
-      throw new Error(`Google API error: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('Lovable AI error:', response.status, errorText);
+      
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again in a moment.');
+      }
+      if (response.status === 402) {
+        throw new Error('Payment required. Please add credits to your Lovable workspace.');
+      }
+      
+      throw new Error(`AI Gateway error: ${response.statusText}`);
     }
 
     const data = await response.json();
+    console.log('AI response received');
     
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-      throw new Error('Invalid response from Google API');
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Invalid response from AI Gateway');
     }
 
-    const aiResponse = data.candidates[0].content.parts[0].text;
+    const aiResponse = data.choices[0].message.content;
 
     return new Response(
       JSON.stringify({ response: aiResponse }),

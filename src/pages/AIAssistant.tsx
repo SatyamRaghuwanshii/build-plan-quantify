@@ -193,53 +193,53 @@ const AIAssistant = () => {
   };
 
   return (
-    <div className="container px-4 py-8 mx-auto max-w-4xl">
+    <div className="container px-4 py-8 mx-auto max-w-7xl">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl lg:text-4xl font-bold mb-2 flex items-center gap-3">
-          <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-            <Bot className="h-6 w-6 text-primary-foreground" />
-          </div>
+      <div className="mb-8 text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl mb-4 shadow-lg">
+          <Bot className="h-8 w-8 text-primary-foreground" />
+        </div>
+        <h1 className="text-4xl lg:text-5xl font-bold mb-3 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
           AI Construction Assistant
         </h1>
-        <p className="text-lg text-muted-foreground">
-          Get intelligent recommendations for materials, pricing, hiring, and project planning
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          Get intelligent recommendations for materials, pricing, hiring, and project planning powered by AI
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-4 gap-6">
+      <div className="grid lg:grid-cols-3 gap-6">
         {/* Chat Interface */}
-        <div className="lg:col-span-3">
-          <Card className="card-elevated h-[600px] flex flex-col">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-primary" />
+        <div className="lg:col-span-2">
+          <Card className="border-2 shadow-xl h-[650px] flex flex-col bg-gradient-to-br from-background to-muted/20">
+            <CardHeader className="pb-4 border-b">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <MessageCircle className="h-6 w-6 text-primary" />
                 Chat with AI Assistant
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-base">
                 Ask questions about materials, costs, hiring, or project planning
               </CardDescription>
             </CardHeader>
             
-            <CardContent className="flex-1 flex flex-col">
+            <CardContent className="flex-1 flex flex-col p-6">
               {/* Messages Area */}
-              <ScrollArea className="flex-1 mb-4">
-                <div className="space-y-4">
+              <ScrollArea className="flex-1 mb-4 pr-4">
+                <div className="space-y-6">
                   {messages.map((message) => (
                     <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] ${message.role === 'user' ? 'order-2' : 'order-1'}`}>
+                      <div className={`max-w-[85%] ${message.role === 'user' ? 'order-2' : 'order-1'}`}>
                         {message.role === 'assistant' && (
-                          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mb-2">
-                            <Bot className="h-4 w-4 text-primary-foreground" />
+                          <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center mb-2 shadow-md">
+                            <Bot className="h-5 w-5 text-primary-foreground" />
                           </div>
                         )}
                         
-                        <div className={`p-3 rounded-lg ${
+                        <div className={`p-4 rounded-2xl shadow-sm ${
                           message.role === 'user' 
-                            ? 'bg-primary text-primary-foreground ml-8' 
-                            : 'bg-muted'
+                            ? 'bg-primary text-primary-foreground ml-10' 
+                            : 'bg-card border-2'
                         }`}>
-                          <p className="text-sm">{message.content}</p>
+                          <p className="text-sm leading-relaxed">{message.content}</p>
                         </div>
                         
                         {message.suggestions && (
@@ -273,14 +273,14 @@ const AIAssistant = () => {
                   
                   {isTyping && (
                     <div className="flex gap-3">
-                      <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                        <Bot className="h-4 w-4 text-primary-foreground" />
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-md">
+                        <Bot className="h-5 w-5 text-primary-foreground animate-pulse" />
                       </div>
-                      <div className="bg-muted p-3 rounded-lg">
-                        <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse"></div>
-                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse delay-75"></div>
-                          <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse delay-150"></div>
+                      <div className="bg-card border-2 p-4 rounded-2xl shadow-sm">
+                        <div className="flex space-x-2">
+                          <div className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce"></div>
+                          <div className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                          <div className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce [animation-delay:0.4s]"></div>
                         </div>
                       </div>
                     </div>
@@ -289,20 +289,25 @@ const AIAssistant = () => {
               </ScrollArea>
               
               {/* Input Area */}
-              <div className="border-t pt-4">
-                <div className="flex gap-2">
+              <div className="border-t-2 pt-4">
+                <div className="flex gap-3">
                   <Input
                     placeholder="Ask me about materials, costs, hiring, or project planning..."
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    className="flex-1"
+                    className="flex-1 h-12 text-base border-2 focus-visible:ring-2"
                   />
-                  <Button onClick={handleSendMessage} disabled={!inputMessage.trim()}>
-                    <Send className="h-4 w-4" />
+                  <Button 
+                    onClick={handleSendMessage} 
+                    disabled={!inputMessage.trim() || isTyping}
+                    size="lg"
+                    className="px-6"
+                  >
+                    <Send className="h-5 w-5" />
                   </Button>
-                  <Button variant="outline" size="icon">
-                    <Mic className="h-4 w-4" />
+                  <Button variant="outline" size="lg" className="border-2">
+                    <Mic className="h-5 w-5" />
                   </Button>
                 </div>
               </div>
@@ -312,24 +317,24 @@ const AIAssistant = () => {
 
         {/* Quick Actions Sidebar */}
         <div className="space-y-6">
-          <Card className="card-elevated">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Zap className="h-5 w-5 text-primary" />
+          <Card className="border-2 shadow-lg">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Zap className="h-6 w-6 text-primary" />
                 Quick Actions
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2">
               {quickActions.map((action, idx) => {
                 const IconComponent = action.icon;
                 return (
                   <Button
                     key={idx}
                     variant="outline"
-                    className="w-full justify-start"
+                    className="w-full justify-start h-12 border-2 hover:bg-primary hover:text-primary-foreground transition-all"
                     onClick={() => handleQuickAction(action)}
                   >
-                    <IconComponent className="h-4 w-4 mr-2" />
+                    <IconComponent className="h-5 w-5 mr-3" />
                     {action.label}
                   </Button>
                 );
@@ -337,40 +342,49 @@ const AIAssistant = () => {
             </CardContent>
           </Card>
 
-          <Card className="card-elevated">
-            <CardHeader>
-              <CardTitle className="text-lg">AI Capabilities</CardTitle>
+          <Card className="border-2 shadow-lg bg-gradient-to-br from-primary/5 to-primary/10">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl">AI Capabilities</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="space-y-2">
-                <Badge variant="secondary" className="w-full justify-start">
-                  <Calculator className="h-3 w-3 mr-2" />
-                  Material Calculations
-                </Badge>
-                <Badge variant="secondary" className="w-full justify-start">
-                  <ShoppingCart className="h-3 w-3 mr-2" />
-                  Price Comparisons
-                </Badge>
-                <Badge variant="secondary" className="w-full justify-start">
-                  <Users className="h-3 w-3 mr-2" />
-                  Expert Recommendations  
-                </Badge>
-                <Badge variant="secondary" className="w-full justify-start">
-                  <Lightbulb className="h-3 w-3 mr-2" />
-                  Project Planning
-                </Badge>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-background rounded-lg border">
+                  <Calculator className="h-5 w-5 text-primary" />
+                  <span className="font-medium">Material Calculations</span>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-background rounded-lg border">
+                  <ShoppingCart className="h-5 w-5 text-primary" />
+                  <span className="font-medium">Price Comparisons</span>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-background rounded-lg border">
+                  <Users className="h-5 w-5 text-primary" />
+                  <span className="font-medium">Expert Recommendations</span>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-background rounded-lg border">
+                  <Lightbulb className="h-5 w-5 text-primary" />
+                  <span className="font-medium">Project Planning</span>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="card-elevated">
-            <CardHeader>
-              <CardTitle className="text-lg">Recent Suggestions</CardTitle>
+          <Card className="border-2 shadow-lg">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl">Recent Insights</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <p className="text-muted-foreground">• Check cement deals - 10% off this week</p>
-              <p className="text-muted-foreground">• Steel prices trending up - order soon</p>
-              <p className="text-muted-foreground">• 5 new verified contractors available</p>
+            <CardContent className="space-y-3">
+              <div className="flex items-start gap-2 text-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2" />
+                <p className="text-muted-foreground">Cement deals - 10% off this week</p>
+              </div>
+              <div className="flex items-start gap-2 text-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2" />
+                <p className="text-muted-foreground">Steel prices trending up - order soon</p>
+              </div>
+              <div className="flex items-start gap-2 text-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2" />
+                <p className="text-muted-foreground">5 new verified contractors available</p>
+              </div>
             </CardContent>
           </Card>
         </div>
