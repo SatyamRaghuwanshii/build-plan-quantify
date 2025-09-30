@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,7 @@ interface QuickAction {
 
 const AIAssistant = () => {
   const { toast } = useToast();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -55,12 +56,37 @@ const AIAssistant = () => {
   const [inputMessage, setInputMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isTyping]);
+
   const quickActions: QuickAction[] = [
     { label: "Calculate Again", action: "calculate", icon: Calculator },
     { label: "Best Deals", action: "deals", icon: ShoppingCart },
     { label: "Hire Experts", action: "hire", icon: Users },
     { label: "Get Ideas", action: "ideas", icon: Lightbulb }
   ];
+
+  // Helper function to render text with bold markdown
+  const renderFormattedText = (text: string) => {
+    // Split by ** for bold text
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        // Remove ** and render as bold
+        return <strong key={index} className="font-bold">{part.slice(2, -2)}</strong>;
+      }
+      // Split by * for bullet points and render with proper spacing
+      return part.split('\n').map((line, lineIndex) => (
+        <span key={`${index}-${lineIndex}`}>
+          {line}
+          {lineIndex < part.split('\n').length - 1 && <br />}
+        </span>
+      ));
+    });
+  };
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
@@ -91,7 +117,7 @@ const AIAssistant = () => {
         role: "assistant",
         content: data?.response || "Sorry, I couldn't generate a response.",
         timestamp: new Date(),
-        suggestions: generateSuggestions(inputMessage)
+        suggestions: generateSuggestionsFromAI(data?.response || "")
       };
 
       setMessages(prev => [...prev, aiResponse]);
@@ -109,6 +135,40 @@ const AIAssistant = () => {
     } finally {
       setIsTyping(false);
     }
+  };
+
+  // Generate suggestions based on AI response content
+  const generateSuggestionsFromAI = (aiResponse: string): QuickAction[] => {
+    const lowerResponse = aiResponse.toLowerCase();
+    const suggestions: QuickAction[] = [];
+    
+    // Check for different topics mentioned in the AI response
+    if (lowerResponse.includes("material") || lowerResponse.includes("calculation") || lowerResponse.includes("quantity")) {
+      suggestions.push({ label: "Open Calculator", action: "calculate", icon: Calculator, href: "/calculator" });
+    }
+    
+    if (lowerResponse.includes("price") || lowerResponse.includes("deal") || lowerResponse.includes("supplier") || lowerResponse.includes("cost")) {
+      suggestions.push({ label: "Browse Marketplace", action: "deals", icon: ShoppingCart, href: "/marketplace" });
+    }
+    
+    if (lowerResponse.includes("hire") || lowerResponse.includes("engineer") || lowerResponse.includes("contractor") || lowerResponse.includes("professional")) {
+      suggestions.push({ label: "Find Experts", action: "hire", icon: Users, href: "/hiring" });
+    }
+    
+    if (lowerResponse.includes("plan") || lowerResponse.includes("project") || lowerResponse.includes("timeline")) {
+      suggestions.push({ label: "View Projects", action: "projects", icon: Target, href: "/projects" });
+    }
+    
+    // Add generic helpful suggestions if none matched
+    if (suggestions.length === 0) {
+      suggestions.push(
+        { label: "Calculate Materials", action: "calculate", icon: Calculator, href: "/calculator" },
+        { label: "Find Best Deals", action: "deals", icon: ShoppingCart, href: "/marketplace" }
+      );
+    }
+    
+    // Limit to 3 suggestions
+    return suggestions.slice(0, 3);
   };
 
   const generateSuggestions = (userInput: string): QuickAction[] => {
@@ -239,7 +299,7 @@ const AIAssistant = () => {
                             ? 'bg-primary text-primary-foreground ml-10' 
                             : 'bg-card border-2'
                         }`}>
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{renderFormattedText(message.content)}</p>
                         </div>
                         
                         {message.suggestions && (
@@ -285,6 +345,9 @@ const AIAssistant = () => {
                       </div>
                     </div>
                   )}
+                  
+                  {/* Auto-scroll anchor */}
+                  <div ref={messagesEndRef} />
                 </div>
               </ScrollArea>
               
