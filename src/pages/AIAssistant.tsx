@@ -221,25 +221,25 @@ const AIAssistant = () => {
               </CardDescription>
             </CardHeader>
             
-            <CardContent className="flex-1 flex flex-col p-6">
+            <CardContent className="flex-1 flex flex-col p-6 overflow-hidden">
               {/* Messages Area */}
-              <ScrollArea className="flex-1 mb-4 pr-4">
-                <div className="space-y-6">
+              <ScrollArea className="flex-1 mb-4 pr-2">
+                <div className="space-y-6 pr-2">
                   {messages.map((message) => (
                     <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[85%] ${message.role === 'user' ? 'order-2' : 'order-1'}`}>
+                      <div className={`max-w-[85%] min-w-0 ${message.role === 'user' ? 'order-2' : 'order-1'}`}>
                         {message.role === 'assistant' && (
-                          <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center mb-2 shadow-md">
+                          <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center mb-2 shadow-md flex-shrink-0">
                             <Bot className="h-5 w-5 text-primary-foreground" />
                           </div>
                         )}
                         
-                        <div className={`p-4 rounded-2xl shadow-sm ${
+                        <div className={`p-4 rounded-2xl shadow-sm break-words overflow-wrap-anywhere ${
                           message.role === 'user' 
                             ? 'bg-primary text-primary-foreground ml-10' 
                             : 'bg-card border-2'
                         }`}>
-                          <p className="text-sm leading-relaxed">{message.content}</p>
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
                         </div>
                         
                         {message.suggestions && (
