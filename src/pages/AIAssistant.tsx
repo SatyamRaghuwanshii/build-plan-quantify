@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   id: string;
@@ -76,29 +77,19 @@ const AIAssistant = () => {
     setIsTyping(true);
 
     try {
-      // Call the Supabase edge function
-      const response = await fetch('https://krwahbbojypmjuzklovh.supabase.co/functions/v1/ai-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: inputMessage }),
+      // Call the Supabase edge function using the client
+      const { data, error } = await supabase.functions.invoke('ai-chat', {
+        body: { message: inputMessage }
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
+      if (error) {
+        throw error;
       }
 
       const aiResponse: Message = {
         id: Date.now().toString(),
         role: "assistant",
-        content: data.response,
+        content: data?.response || "Sorry, I couldn't generate a response.",
         timestamp: new Date(),
         suggestions: generateSuggestions(inputMessage)
       };
