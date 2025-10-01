@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { IsometricHouse } from "@/components/IsometricHouse";
 import { 
   Calculator, 
   PenTool, 
@@ -122,6 +123,22 @@ const Home = () => {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* 3D House Building Section */}
+      <section className="py-20 bg-background">
+        <div className="container px-4 mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl lg:text-4xl font-bold mb-4">
+              Watch Your Vision Come to Life
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Scroll down to see how we build your construction projects step by step - 
+              from foundation to finishing touches.
+            </p>
+          </div>
+          <IsometricHouse />
         </div>
       </section>
 
