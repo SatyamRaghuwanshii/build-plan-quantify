@@ -251,10 +251,14 @@ export const IsometricHouse = () => {
       
       let progress = 0;
       
+      // Calculate progress based on how much the section has been scrolled through
       if (sectionTop < windowHeight && sectionTop > -sectionHeight) {
-        const visibleAmount = windowHeight - sectionTop;
-        progress = Math.min(visibleAmount / (windowHeight + sectionHeight), 1);
+        // Element is in viewport
+        const scrolledIntoView = Math.max(0, windowHeight - sectionTop);
+        const totalScrollDistance = windowHeight + sectionHeight;
+        progress = Math.min(scrolledIntoView / totalScrollDistance, 1);
       } else if (sectionTop <= -sectionHeight) {
+        // Element has been fully scrolled past
         progress = 1;
       }
       
@@ -262,7 +266,7 @@ export const IsometricHouse = () => {
     };
 
     handleScroll();
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -281,10 +285,11 @@ export const IsometricHouse = () => {
           alpha: true,
           powerPreference: "high-performance"
         }}
+        style={{ pointerEvents: 'auto' }}
       >
         <ModernHouse buildProgress={buildProgress} isDragging={isDragging} />
         <OrbitControls 
-          enableZoom={true}
+          enableZoom={false}
           enablePan={false}
           minDistance={8}
           maxDistance={30}
@@ -297,15 +302,15 @@ export const IsometricHouse = () => {
       </Canvas>
       
       {/* Progress Indicator */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-background/80 backdrop-blur-sm px-6 py-3 rounded-full border">
+      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-background/80 backdrop-blur-sm px-6 py-3 rounded-full border pointer-events-none">
         <p className="text-sm font-medium">
           Building Progress: {Math.round(buildProgress * 100)}%
         </p>
       </div>
       
       {/* Controls hint */}
-      <div className="absolute top-4 left-4 bg-background/80 backdrop-blur-sm px-4 py-2 rounded-lg border text-xs">
-        <p className="font-medium">🖱️ Drag to rotate • Scroll to zoom</p>
+      <div className="absolute top-4 left-4 bg-background/80 backdrop-blur-sm px-4 py-2 rounded-lg border text-xs pointer-events-none">
+        <p className="font-medium">🖱️ Drag to rotate</p>
       </div>
     </div>
   );
