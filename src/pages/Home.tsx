@@ -126,19 +126,26 @@ const Home = () => {
         </div>
       </section>
 
-      {/* 3D House Building Section */}
-      <section className="py-20 bg-background">
-        <div className="container px-4 mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold mb-4">
+      {/* 3D House Building Section - Fixed Background */}
+      <section className="relative py-20 overflow-hidden">
+        {/* Fixed 3D Background */}
+        <div className="fixed inset-0 z-0 pointer-events-auto">
+          <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/50 to-background/95" />
+          <IsometricHouse />
+        </div>
+        
+        {/* Foreground Content */}
+        <div className="relative z-10 container px-4 mx-auto pointer-events-none">
+          <div className="text-center mb-12 pointer-events-auto">
+            <h2 className="text-3xl lg:text-4xl font-bold mb-4 bg-background/90 backdrop-blur-sm inline-block px-8 py-4 rounded-lg">
               Watch Your Vision Come to Life
             </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto bg-background/80 backdrop-blur-sm px-6 py-3 rounded-lg">
               Scroll down to see how we build your construction projects step by step - 
-              from foundation to finishing touches.
+              from foundation to finishing touches. Drag to rotate, scroll to zoom.
             </p>
           </div>
-          <IsometricHouse />
+          <div className="h-[600px]" />
         </div>
       </section>
 
