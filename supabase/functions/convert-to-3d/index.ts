@@ -24,6 +24,40 @@ serve(async (req) => {
 
     console.log('Converting floor plan to isometric 3D view');
 
+    const isometricPrompt = `Transform this 2D architectural floor plan into a professional isometric 3D architectural rendering.
+
+ISOMETRIC VIEW REQUIREMENTS:
+- Use true isometric perspective (120° angles between axes)
+- View from 45-degree angle from above and slightly to the side
+- Maintain exact floor plan layout and room proportions from the 2D plan
+
+3D ARCHITECTURAL ELEMENTS:
+- Show walls with realistic height (8-9 feet) and thickness
+- Display ceiling/roof structure in the isometric style
+- Include all doors in 3D (open or closed positions showing depth)
+- Show windows with frames, glass, and depth
+- Render furniture pieces in 3D matching the floor plan layout
+- Add kitchen cabinets, appliances, and countertops in 3D
+- Show bathroom fixtures (toilet, sink, shower/tub) in 3D
+- Include closets with depth and shelving if visible
+
+VISUAL STYLING:
+- Clean architectural rendering style
+- Subtle shadows and ambient occlusion for depth
+- Light neutral colors (whites, beiges, light grays)
+- Realistic materials (wood floors, tile, carpet textures)
+- Professional architectural visualization quality
+- Maintain clean lines and geometric precision
+
+TECHNICAL ACCURACY:
+- Preserve all room dimensions from the 2D plan
+- Keep walls aligned and parallel/perpendicular as appropriate
+- Show proper door swing directions from the floor plan
+- Maintain furniture placement and scale from 2D layout
+- Include any outdoor spaces (patios, decks) if present in plan
+
+Style: Professional architectural isometric rendering, clean and suitable for presentations.`;
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -38,7 +72,7 @@ serve(async (req) => {
             content: [
               {
                 type: "text",
-                text: "Convert this architectural floor plan into a beautiful isometric 3D view. Show the house in isometric perspective with walls, rooms, furniture, windows, and doors visible from above at 45-degree angle. Add depth, shadows, and realistic materials. Make it look professional and architectural."
+                text: isometricPrompt
               },
               {
                 type: "image_url",

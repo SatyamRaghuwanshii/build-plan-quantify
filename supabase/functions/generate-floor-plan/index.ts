@@ -18,13 +18,39 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Construct detailed prompt for floor plan generation
-    const detailedPrompt = prompt || 
-      `Generate a detailed architectural floor plan for a ${sqft || '2000'} sq ft house with ${rooms || '3'} bedrooms in ${style || 'modern'} style. 
-      Include: room labels, dimensions, doors, windows, walls, and furniture layout. 
-      Make it professional, clean, and suitable for construction. Top-down 2D view with clear annotations.`;
+    // Construct detailed prompt with consistent brand style
+    const basePrompt = `Create a professional architectural floor plan in technical drawing style. 
+    
+SPECIFICATIONS:
+- House size: ${sqft || '2000'} square feet
+- Bedrooms: ${rooms || '3'}
+- Style: ${style || 'modern'}
+${prompt ? `- Additional requirements: ${prompt}` : ''}
 
-    console.log('Generating floor plan with prompt:', detailedPrompt);
+DRAWING REQUIREMENTS:
+- Use clean black lines on white background
+- Draw walls as double lines (8-12 inches thick)
+- Show all doors with proper swing arcs
+- Include windows as breaks in walls with sill indicators
+- Label each room clearly (e.g., "Master Bedroom 14'x16'")
+- Add room dimensions in feet and inches
+- Include furniture layout (beds, sofas, tables, kitchen appliances)
+- Show kitchen counters, bathroom fixtures, and closets
+- Add compass rose indicating North direction
+- Include scale bar (1/4" = 1'-0")
+
+LAYOUT STANDARDS:
+- Main entrance with foyer/entry area
+- Open-concept living/dining/kitchen if modern style
+- Master bedroom with en-suite bathroom
+- Secondary bedrooms with adequate closet space
+- Proper hallway widths (36" minimum)
+- Standard door widths (30"-36")
+- Realistic room proportions and flow
+
+Style: Clean architectural drafting, professional, suitable for construction documentation.`;
+
+    console.log('Generating floor plan with architectural specifications');
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -37,7 +63,7 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: detailedPrompt
+            content: basePrompt
           }
         ],
         modalities: ["image", "text"]
