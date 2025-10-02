@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { IsometricHouse } from "@/components/IsometricHouse";
+import { FloorPlanGenerator } from "@/components/FloorPlanGenerator";
 import { 
   Calculator, 
   PenTool, 
@@ -126,25 +126,9 @@ const Home = () => {
         </div>
       </section>
 
-      {/* 3D House Building Section - Scrollable */}
-      <section className="relative py-20 overflow-hidden min-h-screen">
-        {/* Foreground Content */}
-        <div className="relative z-10 container px-4 mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold mb-4 bg-background/90 backdrop-blur-sm inline-block px-8 py-4 rounded-lg">
-              Watch Your Vision Come to Life
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto bg-background/80 backdrop-blur-sm px-6 py-3 rounded-lg">
-              Scroll down to see how we build your construction projects step by step - 
-              from foundation to finishing touches.
-            </p>
-          </div>
-          
-          {/* 3D Model with scroll animation */}
-          <IsometricHouse />
-          
-          <div className="h-[400px]" />
-        </div>
+      {/* AI Floor Plan Generation Section */}
+      <section className="relative py-20 bg-muted/30">
+        <FloorPlanGenerator />
       </section>
 
       {/* Features Section */}
