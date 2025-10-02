@@ -17,11 +17,16 @@ export const FloorPlanGenerator = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [description, setDescription] = useState<string | null>(null);
+  const [isConverting, setIsConverting] = useState(false);
+  const [image3D, setImage3D] = useState<string | null>(null);
+  const [description3D, setDescription3D] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     setIsGenerating(true);
     setGeneratedImage(null);
     setDescription(null);
+    setImage3D(null);
+    setDescription3D(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-floor-plan', {
@@ -56,6 +61,44 @@ export const FloorPlanGenerator = () => {
       toast.error('An error occurred while generating the floor plan');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleConvertTo3D = async () => {
+    if (!generatedImage) return;
+    
+    setIsConverting(true);
+    setImage3D(null);
+    setDescription3D(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('convert-to-3d', {
+        body: { imageUrl: generatedImage }
+      });
+
+      if (error) {
+        if (error.message.includes('429')) {
+          toast.error('Rate limit exceeded. Please try again later.');
+        } else if (error.message.includes('402')) {
+          toast.error('Please add credits to your Lovable AI workspace.');
+        } else {
+          toast.error('Failed to convert to 3D: ' + error.message);
+        }
+        return;
+      }
+
+      if (data?.imageUrl) {
+        setImage3D(data.imageUrl);
+        setDescription3D(data.description);
+        toast.success('3D view generated successfully!');
+      } else {
+        toast.error('No 3D image generated');
+      }
+    } catch (err) {
+      console.error('Error converting to 3D:', err);
+      toast.error('An error occurred while converting to 3D');
+    } finally {
+      setIsConverting(false);
     }
   };
 
@@ -142,34 +185,90 @@ export const FloorPlanGenerator = () => {
           </Button>
 
           {generatedImage && (
-            <div className="space-y-4 animate-fade-in">
-              <div className="border rounded-lg overflow-hidden">
-                <img 
-                  src={generatedImage} 
-                  alt="Generated floor plan" 
-                  className="w-full h-auto"
-                />
+            <div className="space-y-6 animate-fade-in">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 2D Floor Plan */}
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold">2D Floor Plan</h3>
+                  <div className="border rounded-lg overflow-hidden">
+                    <img 
+                      src={generatedImage} 
+                      alt="Generated floor plan" 
+                      className="w-full h-auto"
+                    />
+                  </div>
+                  {description && (
+                    <p className="text-sm text-muted-foreground">{description}</p>
+                  )}
+                </div>
+
+                {/* 3D Isometric View */}
+                {image3D && (
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold">Isometric 3D View</h3>
+                    <div className="border rounded-lg overflow-hidden">
+                      <img 
+                        src={image3D} 
+                        alt="Isometric 3D view" 
+                        className="w-full h-auto"
+                      />
+                    </div>
+                    {description3D && (
+                      <p className="text-sm text-muted-foreground">{description3D}</p>
+                    )}
+                  </div>
+                )}
               </div>
-              {description && (
-                <p className="text-sm text-muted-foreground">{description}</p>
-              )}
-              <div className="flex gap-2">
+
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  onClick={handleConvertTo3D}
+                  disabled={isConverting}
+                  variant={image3D ? "outline" : "default"}
+                >
+                  {isConverting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Converting to 3D...
+                    </>
+                  ) : image3D ? (
+                    'Regenerate 3D View'
+                  ) : (
+                    'Convert to Isometric 3D'
+                  )}
+                </Button>
+                
                 <Button 
                   variant="outline" 
                   onClick={() => {
                     const link = document.createElement('a');
                     link.href = generatedImage;
-                    link.download = 'floor-plan.png';
+                    link.download = 'floor-plan-2d.png';
                     link.click();
                   }}
                 >
-                  Download Floor Plan
+                  Download 2D Plan
                 </Button>
+
+                {image3D && (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = image3D;
+                      link.download = 'floor-plan-3d.png';
+                      link.click();
+                    }}
+                  >
+                    Download 3D View
+                  </Button>
+                )}
+
                 <Button 
                   variant="outline" 
                   onClick={handleGenerate}
                 >
-                  Generate Another
+                  Generate New Plan
                 </Button>
               </div>
             </div>
