@@ -128,7 +128,7 @@ const Home = () => {
 
       {/* AI Floor Plan Generation Section */}
       <section className="relative py-20 bg-muted/30">
-        <FloorPlanGenerator />
+        <FloorPlanGenerator isPro={false} />
       </section>
 
       {/* Features Section */}

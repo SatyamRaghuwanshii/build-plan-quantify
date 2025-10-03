@@ -5,6 +5,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Reference floor plan images (hidden from users, used for style guidance)
+// Replace these URLs with your actual hosted reference images
+const REFERENCE_IMAGES = [
+  "https://example.com/reference-floorplan-1.png",
+  "https://example.com/reference-floorplan-2.png",
+  "https://example.com/reference-floorplan-3.png",
+  "https://example.com/reference-floorplan-4.png",
+  "https://example.com/reference-floorplan-5.png",
+];
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -52,6 +62,19 @@ Style: Clean architectural drafting, professional, suitable for construction doc
 
     console.log('Generating floor plan with architectural specifications');
 
+    // Build message content with reference images and prompt
+    const messageContent = [
+      {
+        type: "text",
+        text: `${basePrompt}\n\nIMPORTANT: Use the following reference images as style guides. Match their professional architectural drawing style, line weights, annotation format, and visual presentation:`
+      },
+      // Add reference images to guide the AI
+      ...REFERENCE_IMAGES.map((url: string) => ({
+        type: "image_url",
+        image_url: { url }
+      })),
+    ];
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -63,7 +86,7 @@ Style: Clean architectural drafting, professional, suitable for construction doc
         messages: [
           {
             role: "user",
-            content: basePrompt
+            content: messageContent
           }
         ],
         modalities: ["image", "text"]
