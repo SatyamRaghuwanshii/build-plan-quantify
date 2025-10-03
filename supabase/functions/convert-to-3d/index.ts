@@ -5,16 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Reference 3D isometric images (hidden from users, used for style guidance)
-// Replace these URLs with your actual hosted reference 3D isometric floor plan images
-const REFERENCE_3D_IMAGES = [
-  "https://example.com/reference-3d-isometric-1.png",
-  "https://example.com/reference-3d-isometric-2.png",
-  "https://example.com/reference-3d-isometric-3.png",
-  "https://example.com/reference-3d-isometric-4.png",
-  "https://example.com/reference-3d-isometric-5.png",
-];
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -68,29 +58,6 @@ TECHNICAL ACCURACY:
 
 Style: Professional architectural isometric rendering, clean and suitable for presentations.`;
 
-    // Build message content with reference images, prompt, and the floor plan to convert
-    const messageContent = [
-      {
-        type: "text",
-        text: `${isometricPrompt}\n\nIMPORTANT: Use the following reference images as style guides for the isometric 3D rendering. Match their perspective, material rendering, lighting, and professional quality:`
-      },
-      // Add reference images to guide the AI
-      ...REFERENCE_3D_IMAGES.map((url: string) => ({
-        type: "image_url",
-        image_url: { url }
-      })),
-      {
-        type: "text",
-        text: "Now convert THIS floor plan into isometric 3D following the reference style:"
-      },
-      {
-        type: "image_url",
-        image_url: {
-          url: imageUrl
-        }
-      }
-    ];
-
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -102,7 +69,18 @@ Style: Professional architectural isometric rendering, clean and suitable for pr
         messages: [
           {
             role: "user",
-            content: messageContent
+            content: [
+              {
+                type: "text",
+                text: isometricPrompt
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: imageUrl
+                }
+              }
+            ]
           }
         ],
         modalities: ["image", "text"]

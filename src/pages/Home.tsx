@@ -1,8 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FloorPlanGenerator } from "@/components/FloorPlanGenerator";
-import { 
+import {
   Calculator, 
   PenTool, 
   FolderOpen, 
@@ -24,6 +23,13 @@ const Home = () => {
       description: "Calculate precise quantities for concrete, bricks, steel, and other construction materials with real-time cost estimation.",
       href: "/calculator",
       color: "bg-blue-500",
+    },
+    {
+      icon: PenTool,
+      title: "AI Floor Plans",
+      description: "Generate professional 2D and 3D floor plans instantly using AI technology.",
+      href: "/floor-plan",
+      color: "bg-cyan-500",
     },
     {
       icon: ShoppingCart,
@@ -124,11 +130,6 @@ const Home = () => {
             </div>
           </div>
         </div>
-      </section>
-
-      {/* AI Floor Plan Generation Section */}
-      <section className="relative py-20 bg-muted/30">
-        <FloorPlanGenerator isPro={false} />
       </section>
 
       {/* Features Section */}

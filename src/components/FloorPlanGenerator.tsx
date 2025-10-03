@@ -5,16 +5,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Crown } from 'lucide-react';
+import { Loader2, Download } from 'lucide-react';
 
-interface FloorPlanGeneratorProps {
-  isPro?: boolean;
-}
+interface FloorPlanGeneratorProps {}
 
-export const FloorPlanGenerator = ({ isPro = false }: FloorPlanGeneratorProps) => {
+export const FloorPlanGenerator = ({}: FloorPlanGeneratorProps) => {
   const [rooms, setRooms] = useState('3');
   const [sqft, setSqft] = useState('2000');
   const [style, setStyle] = useState('modern');
@@ -252,77 +249,21 @@ export const FloorPlanGenerator = ({ isPro = false }: FloorPlanGeneratorProps) =
                     link.click();
                   }}
                 >
-                  Download 2D (PNG)
+                  Download 2D
                 </Button>
 
-                {isPro && (
-                  <>
-                    <Button 
-                      variant="outline"
-                      onClick={() => {
-                        toast.info('High-resolution download starting...');
-                        const link = document.createElement('a');
-                        link.href = generatedImage;
-                        link.download = 'floor-plan-2d-highres.png';
-                        link.click();
-                      }}
-                    >
-                      <Crown className="mr-2 h-4 w-4" />
-                      Download 2D (High-Res)
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      onClick={() => {
-                        toast.info('SVG conversion would happen here (requires additional API)');
-                      }}
-                    >
-                      <Crown className="mr-2 h-4 w-4" />
-                      Download 2D (SVG)
-                    </Button>
-                  </>
-                )}
-
                 {image3D && (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        const link = document.createElement('a');
-                        link.href = image3D;
-                        link.download = 'floor-plan-3d.png';
-                        link.click();
-                      }}
-                    >
-                      Download 3D (PNG)
-                    </Button>
-
-                    {isPro && (
-                      <>
-                        <Button 
-                          variant="outline"
-                          onClick={() => {
-                            toast.info('High-resolution download starting...');
-                            const link = document.createElement('a');
-                            link.href = image3D;
-                            link.download = 'floor-plan-3d-highres.png';
-                            link.click();
-                          }}
-                        >
-                          <Crown className="mr-2 h-4 w-4" />
-                          Download 3D (High-Res)
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          onClick={() => {
-                            toast.info('SVG conversion would happen here (requires additional API)');
-                          }}
-                        >
-                          <Crown className="mr-2 h-4 w-4" />
-                          Download 3D (SVG)
-                        </Button>
-                      </>
-                    )}
-                  </>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = image3D;
+                      link.download = 'floor-plan-3d.png';
+                      link.click();
+                    }}
+                  >
+                    Download 3D
+                  </Button>
                 )}
 
                 <Button 
@@ -332,15 +273,6 @@ export const FloorPlanGenerator = ({ isPro = false }: FloorPlanGeneratorProps) =
                   Generate New Plan
                 </Button>
               </div>
-              
-              {!isPro && (
-                <div className="mt-4 p-4 bg-muted rounded-lg">
-                  <p className="text-sm text-muted-foreground flex items-center gap-2">
-                    <Crown className="h-4 w-4" />
-                    Upgrade to Pro for high-resolution and SVG downloads
-                  </p>
-                </div>
-              )}
             </div>
           )}
         </CardContent>
