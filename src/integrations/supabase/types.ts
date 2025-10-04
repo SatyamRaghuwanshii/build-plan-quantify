@@ -14,7 +14,224 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bid_requests: {
+        Row: {
+          budget: number | null
+          category: string
+          created_at: string
+          delivery_deadline: string | null
+          delivery_location: string
+          description: string
+          id: string
+          quantity: number
+          status: string
+          title: string
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget?: number | null
+          category: string
+          created_at?: string
+          delivery_deadline?: string | null
+          delivery_location: string
+          description: string
+          id?: string
+          quantity: number
+          status?: string
+          title: string
+          unit: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget?: number | null
+          category?: string
+          created_at?: string
+          delivery_deadline?: string | null
+          delivery_location?: string
+          description?: string
+          id?: string
+          quantity?: number
+          status?: string
+          title?: string
+          unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      bids: {
+        Row: {
+          bid_request_id: string
+          created_at: string
+          delivery_time_days: number
+          id: string
+          notes: string | null
+          price: number
+          status: string
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          bid_request_id: string
+          created_at?: string
+          delivery_time_days: number
+          id?: string
+          notes?: string | null
+          price: number
+          status?: string
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          bid_request_id?: string
+          created_at?: string
+          delivery_time_days?: number
+          id?: string
+          notes?: string | null
+          price?: number
+          status?: string
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bids_bid_request_id_fkey"
+            columns: ["bid_request_id"]
+            isOneToOne: false
+            referencedRelation: "bid_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bids_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_products: {
+        Row: {
+          base_price: number
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          min_order_quantity: number | null
+          name: string
+          stock_quantity: number | null
+          unit: string
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          base_price: number
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          min_order_quantity?: number | null
+          name: string
+          stock_quantity?: number | null
+          unit: string
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          base_price?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          min_order_quantity?: number | null
+          name?: string
+          stock_quantity?: number | null
+          unit?: string
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_products_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendor_profiles: {
+        Row: {
+          address: string
+          business_license: string | null
+          city: string
+          company_name: string
+          contact_email: string
+          contact_phone: string
+          created_at: string
+          description: string | null
+          id: string
+          logo_url: string | null
+          rating: number | null
+          state: string
+          tax_id: string | null
+          total_reviews: number | null
+          updated_at: string
+          user_id: string | null
+          verification_status: string
+          zip_code: string
+        }
+        Insert: {
+          address: string
+          business_license?: string | null
+          city: string
+          company_name: string
+          contact_email: string
+          contact_phone: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          rating?: number | null
+          state: string
+          tax_id?: string | null
+          total_reviews?: number | null
+          updated_at?: string
+          user_id?: string | null
+          verification_status?: string
+          zip_code: string
+        }
+        Update: {
+          address?: string
+          business_license?: string | null
+          city?: string
+          company_name?: string
+          contact_email?: string
+          contact_phone?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          rating?: number | null
+          state?: string
+          tax_id?: string | null
+          total_reviews?: number | null
+          updated_at?: string
+          user_id?: string | null
+          verification_status?: string
+          zip_code?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

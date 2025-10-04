@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ShoppingCart, 
   Star, 
@@ -12,9 +13,13 @@ import {
   Search,
   MapPin,
   DollarSign,
-  Package
+  Package,
+  Store,
+  Gavel
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { VendorOnboarding } from "@/components/VendorOnboarding";
+import { BiddingSystem } from "@/components/BiddingSystem";
 
 interface Material {
   id: string;
@@ -179,12 +184,30 @@ const Marketplace = () => {
       <div className="mb-8">
         <h1 className="text-3xl lg:text-4xl font-bold mb-2">Material Marketplace</h1>
         <p className="text-lg text-muted-foreground">
-          Find the best construction materials at competitive prices from trusted suppliers
+          Find materials, request quotes, and become a vendor
         </p>
       </div>
 
-      {/* Filters & Search */}
-      <div className="mb-8 space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-4">
+      <Tabs defaultValue="browse" className="space-y-8">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="browse">
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            Browse Materials
+          </TabsTrigger>
+          <TabsTrigger value="bidding">
+            <Gavel className="h-4 w-4 mr-2" />
+            Live Bidding
+          </TabsTrigger>
+          <TabsTrigger value="vendor">
+            <Store className="h-4 w-4 mr-2" />
+            Become Vendor
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Browse Materials Tab */}
+        <TabsContent value="browse" className="space-y-6">
+          {/* Filters & Search */}
+          <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-4">
         <div className="lg:col-span-4">
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -238,11 +261,11 @@ const Marketplace = () => {
               </Badge>
             )}
           </Button>
-        </div>
-      </div>
+            </div>
+          </div>
 
-      {/* Materials Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Materials Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredMaterials.map((material) => (
           <Card key={material.id} className="card-elevated transition-smooth hover:shadow-lg">
             <CardHeader className="pb-3">
@@ -326,18 +349,30 @@ const Marketplace = () => {
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+            ))}
+          </div>
 
-      {filteredMaterials.length === 0 && (
-        <div className="text-center py-12">
-          <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No materials found</h3>
-          <p className="text-muted-foreground">
-            Try adjusting your search terms or filters to find what you need.
-          </p>
-        </div>
-      )}
+          {filteredMaterials.length === 0 && (
+            <div className="text-center py-12">
+              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No materials found</h3>
+              <p className="text-muted-foreground">
+                Try adjusting your search terms or filters to find what you need.
+              </p>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Live Bidding Tab */}
+        <TabsContent value="bidding">
+          <BiddingSystem />
+        </TabsContent>
+
+        {/* Become Vendor Tab */}
+        <TabsContent value="vendor">
+          <VendorOnboarding />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
