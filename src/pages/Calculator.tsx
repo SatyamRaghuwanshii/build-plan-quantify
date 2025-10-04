@@ -414,12 +414,12 @@ const Calculator = () => {
         {/* Results Panel */}
         <Card className="card-elevated">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <span className="flex items-center gap-2">
                 <Building className="h-5 w-5 text-primary" />
                 Calculation Results
               </span>
-              <Badge variant="secondary" className="text-lg px-3">
+              <Badge variant="secondary" className="text-base sm:text-lg px-3 whitespace-nowrap">
                 <DollarSign className="h-4 w-4 mr-1" />
                 ${results.totalCost.toLocaleString()}
               </Badge>
@@ -691,7 +691,7 @@ const Calculator = () => {
 
             <Card className="card-elevated">
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
+                <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <span className="flex items-center gap-2">
                     <Building className="h-5 w-5 text-primary" />
                     Analysis Results
@@ -702,6 +702,7 @@ const Calculator = () => {
                         structuralAnalysis.status === "safe" ? "default" :
                         structuralAnalysis.status === "warning" ? "secondary" : "destructive"
                       }
+                      className="w-fit"
                     >
                       {structuralAnalysis.status === "safe" && <CheckCircle2 className="h-3 w-3 mr-1" />}
                       {structuralAnalysis.status === "warning" && <AlertTriangle className="h-3 w-3 mr-1" />}
