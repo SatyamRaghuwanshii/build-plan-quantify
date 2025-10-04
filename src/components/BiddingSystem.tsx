@@ -4,22 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Gavel, 
-  Plus, 
-  Clock, 
-  DollarSign, 
-  MapPin, 
-  Calendar,
-  TrendingDown,
-  Users,
-  Loader2
-} from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Gavel, Clock, TrendingDown, Users, Plus, Send } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 interface BidRequest {
   id: string;
@@ -28,104 +19,93 @@ interface BidRequest {
   category: string;
   quantity: number;
   unit: string;
-  budget: number;
+  budget: number | null;
   delivery_location: string;
-  delivery_deadline: string;
+  delivery_deadline: string | null;
   status: string;
   created_at: string;
   bid_count?: number;
   lowest_bid?: number;
 }
 
+interface Bid {
+  id: string;
+  price: number;
+  delivery_time_days: number;
+  notes: string;
+  vendor_id: string;
+  created_at: string;
+  vendor_profiles: {
+    company_name: string;
+    rating: number;
+  };
+}
+
 export const BiddingSystem = () => {
   const { toast } = useToast();
   const [bidRequests, setBidRequests] = useState<BidRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
+  const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
+  const [bids, setBids] = useState<Bid[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newRequest, setNewRequest] = useState({
     title: "",
     description: "",
-    category: "cement",
+    category: "",
     quantity: "",
-    unit: "bags",
+    unit: "",
     budget: "",
-    deliveryLocation: "",
-    deliveryDeadline: "",
+    delivery_location: "",
+    delivery_deadline: ""
   });
 
   useEffect(() => {
     fetchBidRequests();
-    
-    // Subscribe to real-time updates
-    const channel = supabase
-      .channel('bid_requests_changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'bid_requests'
-        },
-        () => {
-          fetchBidRequests();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
+  useEffect(() => {
+    if (selectedRequest) {
+      fetchBidsForRequest(selectedRequest);
+    }
+  }, [selectedRequest]);
+
   const fetchBidRequests = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('bid_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('bid_requests')
+      .select(`
+        *,
+        bids(id, price)
+      `)
+      .eq('status', 'open')
+      .order('created_at', { ascending: false });
 
-      if (error) throw error;
-
-      // Fetch bid counts for each request
-      const requestsWithCounts = await Promise.all(
-        (data || []).map(async (request) => {
-          const { count } = await supabase
-            .from('bids')
-            .select('*', { count: 'exact', head: true })
-            .eq('bid_request_id', request.id);
-
-          const { data: bids } = await supabase
-            .from('bids')
-            .select('price')
-            .eq('bid_request_id', request.id)
-            .order('price', { ascending: true })
-            .limit(1);
-
-          return {
-            ...request,
-            bid_count: count || 0,
-            lowest_bid: bids?.[0]?.price
-          };
-        })
-      );
-
-      setBidRequests(requestsWithCounts);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
+    if (!error && data) {
+      const requestsWithStats = data.map(req => ({
+        ...req,
+        bid_count: req.bids?.length || 0,
+        lowest_bid: req.bids?.length ? Math.min(...req.bids.map((b: any) => b.price)) : null
+      }));
+      setBidRequests(requestsWithStats);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const fetchBidsForRequest = async (requestId: string) => {
+    const { data, error } = await supabase
+      .from('bids')
+      .select(`
+        *,
+        vendor_profiles(company_name, rating)
+      `)
+      .eq('bid_request_id', requestId)
+      .order('price', { ascending: true });
 
+    if (!error && data) {
+      setBids(data as any);
+    }
+  };
+
+  const handleCreateRequest = async () => {
+    setIsLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -140,17 +120,17 @@ export const BiddingSystem = () => {
 
       const { error } = await supabase
         .from('bid_requests')
-        .insert({
+        .insert([{
           user_id: user.id,
-          title: formData.title,
-          description: formData.description,
-          category: formData.category,
-          quantity: parseFloat(formData.quantity),
-          unit: formData.unit,
-          budget: formData.budget ? parseFloat(formData.budget) : null,
-          delivery_location: formData.deliveryLocation,
-          delivery_deadline: formData.deliveryDeadline || null,
-        });
+          title: newRequest.title,
+          description: newRequest.description,
+          category: newRequest.category,
+          quantity: parseFloat(newRequest.quantity),
+          unit: newRequest.unit,
+          budget: newRequest.budget ? parseFloat(newRequest.budget) : null,
+          delivery_location: newRequest.delivery_location,
+          delivery_deadline: newRequest.delivery_deadline || null
+        }]);
 
       if (error) throw error;
 
@@ -158,56 +138,39 @@ export const BiddingSystem = () => {
         title: "Bid Request Created",
         description: "Vendors can now submit bids for your request.",
       });
-
-      setIsDialogOpen(false);
-      setFormData({
+      
+      setShowCreateDialog(false);
+      setNewRequest({
         title: "",
         description: "",
-        category: "cement",
+        category: "",
         quantity: "",
-        unit: "bags",
+        unit: "",
         budget: "",
-        deliveryLocation: "",
-        deliveryDeadline: "",
+        delivery_location: "",
+        delivery_deadline: ""
       });
       fetchBidRequests();
     } catch (error: any) {
       toast({
-        title: "Submission Failed",
+        title: "Error",
         description: error.message,
         variant: "destructive"
       });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'open': return 'default';
-      case 'closed': return 'secondary';
-      case 'awarded': return 'default';
-      case 'cancelled': return 'destructive';
-      default: return 'secondary';
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Live Bidding System</h2>
-          <p className="text-muted-foreground">Request quotes and get competitive bids from vendors</p>
+          <h2 className="text-2xl font-bold mb-1">Live Bidding System</h2>
+          <p className="text-muted-foreground">Post requests and receive competitive bids from verified vendors</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -216,214 +179,253 @@ export const BiddingSystem = () => {
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create Bid Request</DialogTitle>
+              <DialogTitle>Create New Bid Request</DialogTitle>
               <DialogDescription>
-                Describe what you need and vendors will compete with their best offers
+                Describe what you need and let vendors compete for your business
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="title">Request Title *</Label>
+                <Label htmlFor="title">Project Title *</Label>
                 <Input
                   id="title"
-                  required
-                  placeholder="e.g., Need 100 bags of cement for residential project"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  value={newRequest.title}
+                  onChange={(e) => setNewRequest({ ...newRequest, title: e.target.value })}
+                  placeholder="e.g., 500 bags of cement needed"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="category">Category *</Label>
+                <Select value={newRequest.category} onValueChange={(v) => setNewRequest({ ...newRequest, category: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cement">Cement</SelectItem>
+                    <SelectItem value="steel">Steel</SelectItem>
+                    <SelectItem value="bricks">Bricks</SelectItem>
+                    <SelectItem value="paint">Paint</SelectItem>
+                    <SelectItem value="flooring">Flooring</SelectItem>
+                    <SelectItem value="plumbing">Plumbing</SelectItem>
+                    <SelectItem value="electrical">Electrical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Quantity *</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    value={newRequest.quantity}
+                    onChange={(e) => setNewRequest({ ...newRequest, quantity: e.target.value })}
+                    placeholder="100"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="unit">Unit *</Label>
+                  <Input
+                    id="unit"
+                    value={newRequest.unit}
+                    onChange={(e) => setNewRequest({ ...newRequest, unit: e.target.value })}
+                    placeholder="bags, kg, sqm"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="description">Description *</Label>
                 <Textarea
                   id="description"
-                  required
-                  placeholder="Provide detailed requirements..."
-                  className="min-h-24"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  value={newRequest.description}
+                  onChange={(e) => setNewRequest({ ...newRequest, description: e.target.value })}
+                  placeholder="Provide details about quality requirements, delivery schedule, etc."
+                  rows={3}
                 />
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category *</Label>
-                  <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cement">Cement</SelectItem>
-                      <SelectItem value="steel">Steel</SelectItem>
-                      <SelectItem value="bricks">Bricks</SelectItem>
-                      <SelectItem value="paint">Paint</SelectItem>
-                      <SelectItem value="flooring">Flooring</SelectItem>
-                      <SelectItem value="plumbing">Plumbing</SelectItem>
-                      <SelectItem value="electrical">Electrical</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantity *</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    step="0.01"
-                    required
-                    value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="unit">Unit *</Label>
-                  <Select value={formData.unit} onValueChange={(value) => setFormData({ ...formData, unit: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="bags">Bags</SelectItem>
-                      <SelectItem value="kg">Kilograms</SelectItem>
-                      <SelectItem value="tons">Tons</SelectItem>
-                      <SelectItem value="sqm">Square Meters</SelectItem>
-                      <SelectItem value="units">Units</SelectItem>
-                      <SelectItem value="gallons">Gallons</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="budget">Budget (Optional)</Label>
                   <Input
                     id="budget"
                     type="number"
-                    step="0.01"
-                    placeholder="Enter your budget"
-                    value={formData.budget}
-                    onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                    value={newRequest.budget}
+                    onChange={(e) => setNewRequest({ ...newRequest, budget: e.target.value })}
+                    placeholder="5000"
                   />
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="deliveryLocation">Delivery Location *</Label>
+                  <Label htmlFor="delivery_deadline">Deadline (Optional)</Label>
                   <Input
-                    id="deliveryLocation"
-                    required
-                    placeholder="City, State"
-                    value={formData.deliveryLocation}
-                    onChange={(e) => setFormData({ ...formData, deliveryLocation: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="deliveryDeadline">Delivery Deadline (Optional)</Label>
-                  <Input
-                    id="deliveryDeadline"
+                    id="delivery_deadline"
                     type="date"
-                    value={formData.deliveryDeadline}
-                    onChange={(e) => setFormData({ ...formData, deliveryDeadline: e.target.value })}
+                    value={newRequest.delivery_deadline}
+                    onChange={(e) => setNewRequest({ ...newRequest, delivery_deadline: e.target.value })}
                   />
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <Gavel className="h-4 w-4 mr-2" />
-                    Create Bid Request
-                  </>
-                )}
+              <div className="space-y-2">
+                <Label htmlFor="delivery_location">Delivery Location *</Label>
+                <Input
+                  id="delivery_location"
+                  value={newRequest.delivery_location}
+                  onChange={(e) => setNewRequest({ ...newRequest, delivery_location: e.target.value })}
+                  placeholder="City, State or full address"
+                />
+              </div>
+
+              <Button 
+                onClick={handleCreateRequest} 
+                className="w-full"
+                disabled={isLoading || !newRequest.title || !newRequest.category || !newRequest.quantity || !newRequest.unit || !newRequest.description || !newRequest.delivery_location}
+              >
+                {isLoading ? "Creating..." : "Post Bid Request"}
               </Button>
-            </form>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {bidRequests.map((request) => (
-          <Card key={request.id} className="card-elevated transition-smooth hover:shadow-lg">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between mb-2">
-                <Badge variant={getStatusColor(request.status)}>
-                  {request.status.toUpperCase()}
-                </Badge>
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <Users className="h-3 w-3" />
-                  {request.bid_count} bids
-                </Badge>
-              </div>
-              <CardTitle className="text-lg line-clamp-2">{request.title}</CardTitle>
-              <CardDescription className="line-clamp-2">{request.description}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Quantity:</span>
-                  <span className="font-semibold">{request.quantity} {request.unit}</span>
-                </div>
-                
-                {request.budget && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Budget:</span>
-                    <span className="font-semibold text-primary">${request.budget.toLocaleString()}</span>
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Bid Requests List */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-lg">Active Requests</h3>
+          <div className="space-y-3">
+            {bidRequests.map((request) => (
+              <Card 
+                key={request.id} 
+                className={`cursor-pointer transition-all ${
+                  selectedRequest === request.id 
+                    ? 'ring-2 ring-primary shadow-lg' 
+                    : 'hover:shadow-md'
+                }`}
+                onClick={() => setSelectedRequest(request.id)}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-base line-clamp-1">{request.title}</CardTitle>
+                    <Badge variant="secondary">
+                      {request.category}
+                    </Badge>
                   </div>
-                )}
-
-                {request.lowest_bid && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground flex items-center gap-1">
-                      <TrendingDown className="h-3 w-3 text-green-500" />
-                      Lowest Bid:
-                    </span>
-                    <span className="font-semibold text-green-600 dark:text-green-400">
-                      ${request.lowest_bid.toLocaleString()}
-                    </span>
+                  <CardDescription className="line-clamp-2">
+                    {request.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Quantity:</span>
+                      <span className="font-semibold">{request.quantity} {request.unit}</span>
+                    </div>
+                    {request.budget && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Budget:</span>
+                        <span className="font-semibold">${request.budget.toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-4 pt-2 border-t">
+                      <div className="flex items-center gap-1 text-sm">
+                        <Users className="h-4 w-4 text-primary" />
+                        <span>{request.bid_count} bids</span>
+                      </div>
+                      {request.lowest_bid && (
+                        <div className="flex items-center gap-1 text-sm">
+                          <TrendingDown className="h-4 w-4 text-green-600" />
+                          <span>from ${request.lowest_bid}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1 text-sm ml-auto">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          {formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                )}
+                </CardContent>
+              </Card>
+            ))}
 
-                <div className="flex items-center gap-1 text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
-                  {request.delivery_location}
-                </div>
-
-                {request.delivery_deadline && (
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <Calendar className="h-3 w-3" />
-                    Deadline: {new Date(request.delivery_deadline).toLocaleDateString()}
-                  </div>
-                )}
-
-                <div className="flex items-center gap-1 text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  Posted {new Date(request.created_at).toLocaleDateString()}
-                </div>
-              </div>
-
-              <Button className="w-full" variant="outline" size="sm">
-                <Gavel className="h-4 w-4 mr-2" />
-                View Bids
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {bidRequests.length === 0 && (
-        <div className="text-center py-12">
-          <Gavel className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No Active Bid Requests</h3>
-          <p className="text-muted-foreground mb-4">
-            Create your first bid request to start receiving competitive quotes
-          </p>
+            {bidRequests.length === 0 && (
+              <Card className="text-center py-12">
+                <Gavel className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">No active bid requests yet</p>
+                <p className="text-sm text-muted-foreground">Create one to get started</p>
+              </Card>
+            )}
+          </div>
         </div>
-      )}
+
+        {/* Bids for Selected Request */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-lg">
+            {selectedRequest ? "Received Bids" : "Select a Request"}
+          </h3>
+          
+          {selectedRequest ? (
+            <div className="space-y-3">
+              {bids.map((bid, index) => (
+                <Card key={bid.id} className="card-elevated">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <div className="font-semibold">{bid.vendor_profiles.company_name}</div>
+                        <div className="flex items-center gap-1 text-sm">
+                          <span>⭐</span>
+                          <span>{bid.vendor_profiles.rating.toFixed(1)}</span>
+                        </div>
+                      </div>
+                      {index === 0 && (
+                        <Badge className="bg-green-600">Lowest Bid</Badge>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Bid Amount:</span>
+                        <span className="text-2xl font-bold text-primary">${bid.price.toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Delivery:</span>
+                        <span className="font-semibold">{bid.delivery_time_days} days</span>
+                      </div>
+                      {bid.notes && (
+                        <div className="pt-2 border-t">
+                          <p className="text-sm text-muted-foreground">{bid.notes}</p>
+                        </div>
+                      )}
+                      <div className="pt-2">
+                        <Button size="sm" className="w-full">
+                          <Send className="h-4 w-4 mr-2" />
+                          Accept Bid
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {bids.length === 0 && (
+                <Card className="text-center py-12">
+                  <p className="text-muted-foreground">No bids submitted yet</p>
+                  <p className="text-sm text-muted-foreground">Vendors will be notified of this request</p>
+                </Card>
+              )}
+            </div>
+          ) : (
+            <Card className="text-center py-12">
+              <Gavel className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">Select a bid request to view bids</p>
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

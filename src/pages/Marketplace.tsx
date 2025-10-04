@@ -43,6 +43,7 @@ const Marketplace = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("best-deals");
   const [cart, setCart] = useState<{[key: string]: number}>({});
+  const [showVendorOnboarding, setShowVendorOnboarding] = useState(false);
 
   const categories = [
     "all", "cement", "steel", "bricks", "paint", "flooring", 
@@ -370,7 +371,12 @@ const Marketplace = () => {
 
         {/* Become Vendor Tab */}
         <TabsContent value="vendor">
-          <VendorOnboarding />
+          <VendorOnboarding onComplete={() => {
+            toast({ 
+              title: "Success", 
+              description: "Your vendor application has been submitted!" 
+            });
+          }} />
         </TabsContent>
       </Tabs>
     </div>
