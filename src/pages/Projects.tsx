@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,13 +24,14 @@ import { useToast } from "@/hooks/use-toast";
 interface Project {
   id: string;
   name: string;
-  type: "Residential" | "Commercial" | "Industrial";
-  status: "Active" | "Completed" | "On Hold";
-  lastUpdated: string;
-  totalCost: number;
-  area: number;
-  rooms: number;
-  description: string;
+  type: string;
+  status: string;
+  description: string | null;
+  total_cost: number | null;
+  area: number | null;
+  rooms: number | null;
+  owner_id: string;
+  updated_at: string;
 }
 
 const Projects = () => {
@@ -37,58 +39,35 @@ const Projects = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Sample project data
-  const [projects] = useState<Project[]>([
-    {
-      id: "1",
-      name: "Residential Complex A",
-      type: "Residential",
-      status: "Active",
-      lastUpdated: "2024-01-15",
-      totalCost: 45000,
-      area: 120.5,
-      rooms: 8,
-      description: "3-bedroom apartment complex with modern amenities"
-    },
-    {
-      id: "2", 
-      name: "Office Building Downtown",
-      type: "Commercial",
-      status: "Completed",
-      lastUpdated: "2024-01-10",
-      totalCost: 125000,
-      area: 450.0,
-      rooms: 25,
-      description: "5-story office building with parking garage"
-    },
-    {
-      id: "3",
-      name: "Warehouse Facility",
-      type: "Industrial", 
-      status: "On Hold",
-      lastUpdated: "2024-01-08",
-      totalCost: 85000,
-      area: 800.0,
-      rooms: 12,
-      description: "Storage and distribution warehouse"
-    },
-    {
-      id: "4",
-      name: "Shopping Mall Extension", 
-      type: "Commercial",
-      status: "Active",
-      lastUpdated: "2024-01-12",
-      totalCost: 200000,
-      area: 650.0,
-      rooms: 35,
-      description: "Extension of existing shopping center"
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const fetchProjects = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("projects")
+      .select("*")
+      .order("updated_at", { ascending: false });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch projects",
+        variant: "destructive",
+      });
+    } else {
+      setProjects(data || []);
     }
-  ]);
+    setLoading(false);
+  };
 
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         (project.description?.toLowerCase() || "").includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === "all" || project.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
@@ -111,11 +90,25 @@ const Projects = () => {
     }
   };
 
-  const handleDeleteProject = (projectId: string, projectName: string) => {
-    toast({
-      title: "Project Deleted",
-      description: `"${projectName}" has been removed from your projects.`,
-    });
+  const handleDeleteProject = async (projectId: string, projectName: string) => {
+    const { error } = await supabase
+      .from("projects")
+      .delete()
+      .eq("id", projectId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete project",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Project Deleted",
+        description: `"${projectName}" has been removed.`,
+      });
+      fetchProjects();
+    }
   };
 
   const handleDuplicateProject = (projectId: string, projectName: string) => {
@@ -131,6 +124,14 @@ const Projects = () => {
       description: `Report for "${projectName}" is being prepared.`,
     });
   };
+
+  if (loading) {
+    return (
+      <div className="container px-4 py-8 mx-auto">
+        <div className="text-center py-12">Loading projects...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="container px-4 py-8 mx-auto">
@@ -240,27 +241,27 @@ const Projects = () => {
                   {project.description}
                 </p>
 
-                {/* Project Stats */}
+                 {/* Project Stats */}
                 <div className="grid grid-cols-2 gap-4 pt-2 border-t">
                   <div className="flex items-center gap-2">
                     <Building className="h-4 w-4 text-primary" />
                     <div>
                       <div className="text-xs text-muted-foreground">Area</div>
-                      <div className="font-semibold">{project.area} m²</div>
+                      <div className="font-semibold">{project.area ? `${project.area} m²` : 'N/A'}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4 text-primary" />
                     <div>
                       <div className="text-xs text-muted-foreground">Cost</div>
-                      <div className="font-semibold">${project.totalCost.toLocaleString()}</div>
+                      <div className="font-semibold">{project.total_cost ? `$${project.total_cost.toLocaleString()}` : 'N/A'}</div>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Calendar className="h-3 w-3" />
-                  Updated {project.lastUpdated}
+                  Updated {new Date(project.updated_at).toLocaleDateString()}
                 </div>
 
                 {/* Action Buttons */}
@@ -321,15 +322,15 @@ const Projects = () => {
                       <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Building className="h-3 w-3" />
-                          {project.area} m²
+                          {project.area ? `${project.area} m²` : 'N/A'}
                         </span>
                         <span className="flex items-center gap-1">
                           <DollarSign className="h-3 w-3" />
-                          ${project.totalCost.toLocaleString()}
+                          {project.total_cost ? `$${project.total_cost.toLocaleString()}` : 'N/A'}
                         </span>
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {project.lastUpdated}
+                          {new Date(project.updated_at).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
