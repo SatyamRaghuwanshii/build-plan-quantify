@@ -11,7 +11,8 @@ import {
   Building,
   ShoppingCart,
   Users,
-  Bot
+  Bot,
+  Box
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     { name: 'Hire Experts', href: '/hiring', icon: Users },
     { name: 'AI Assistant', href: '/ai-assistant', icon: Bot },
     { name: 'Projects', href: '/projects', icon: FolderOpen },
+    { name: 'BIM Viewer', href: '/bim-viewer', icon: Box },
   ];
 
   const isActive = (href: string) => {

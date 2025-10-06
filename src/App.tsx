@@ -12,6 +12,7 @@ import Hiring from "./pages/Hiring";
 import AIAssistant from "./pages/AIAssistant";
 import Projects from "./pages/Projects";
 import ProjectDetail from "./pages/ProjectDetail";
+import BIMViewer from "./pages/BIMViewer";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/floor-plan" element={<FloorPlan />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:id" element={<ProjectDetail />} />
+            <Route path="/bim-viewer" element={<BIMViewer />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
