@@ -36,6 +36,15 @@ interface CalculationResult {
   bricks?: number;
   mortar?: number;
   steel?: number;
+  tiles?: number;
+  adhesive?: number;
+  grout?: number;
+  paint?: number;
+  primer?: number;
+  plaster?: number;
+  lumber?: number;
+  roofingSheets?: number;
+  roofingAccessories?: number;
   totalCost: number;
 }
 
@@ -77,7 +86,16 @@ const Calculator = () => {
     concrete: 120, // per cubic meter (ready mix)
     bricks: 0.5, // per brick
     mortar: 95, // per cubic meter
-    steel: 1.2 // per kg
+    steel: 1.2, // per kg
+    tiles: 25, // per square meter
+    adhesive: 15, // per bag (20kg)
+    grout: 12, // per bag (5kg)
+    paint: 35, // per liter
+    primer: 28, // per liter
+    plaster: 85, // per cubic meter
+    lumber: 450, // per cubic meter
+    roofingSheets: 18, // per sheet
+    roofingAccessories: 5 // per piece
   };
 
   const calculateMaterials = () => {
@@ -137,6 +155,54 @@ const Calculator = () => {
       
       newResults.steel = steelWeight;
       newResults.totalCost = steelWeight * materialCosts.steel;
+    } else if (materialType === "tiles") {
+      const floorArea = length * width;
+      const tilesRequired = floorArea * 1.1; // 10% wastage
+      const adhesiveBags = Math.ceil(floorArea / 5); // 1 bag per 5 sqm
+      const groutBags = Math.ceil(floorArea / 10); // 1 bag per 10 sqm
+      
+      newResults.tiles = tilesRequired;
+      newResults.adhesive = adhesiveBags;
+      newResults.grout = groutBags;
+      newResults.totalCost = 
+        (tilesRequired * materialCosts.tiles) +
+        (adhesiveBags * materialCosts.adhesive) +
+        (groutBags * materialCosts.grout);
+    } else if (materialType === "paint") {
+      const wallArea = 2 * (length + width) * height;
+      const coverage = 10; // square meters per liter
+      const coats = 2;
+      const paintLiters = (wallArea / coverage) * coats * 1.15; // 15% wastage
+      const primerLiters = wallArea / coverage * 1.15;
+      
+      newResults.paint = paintLiters;
+      newResults.primer = primerLiters;
+      newResults.totalCost = 
+        (paintLiters * materialCosts.paint) +
+        (primerLiters * materialCosts.primer);
+    } else if (materialType === "plaster") {
+      const wallArea = 2 * (length + width) * height;
+      const plasterThickness = thickness || 0.015; // default 15mm
+      const plasterVolume = wallArea * plasterThickness;
+      
+      newResults.plaster = plasterVolume;
+      newResults.totalCost = plasterVolume * materialCosts.plaster;
+    } else if (materialType === "lumber") {
+      const lumberVolume = length * width * thickness;
+      
+      newResults.lumber = lumberVolume;
+      newResults.totalCost = lumberVolume * materialCosts.lumber;
+    } else if (materialType === "roofing") {
+      const roofArea = length * width;
+      const sheetsPerSqm = 0.9; // depends on sheet size
+      const sheets = Math.ceil(roofArea * sheetsPerSqm);
+      const accessories = sheets * 8; // nails, screws, ridge caps, etc.
+      
+      newResults.roofingSheets = sheets;
+      newResults.roofingAccessories = accessories;
+      newResults.totalCost = 
+        (sheets * materialCosts.roofingSheets) +
+        (accessories * materialCosts.roofingAccessories);
     }
 
     setResults(newResults);
@@ -373,6 +439,11 @@ const Calculator = () => {
                     <SelectItem value="concrete">Concrete Work</SelectItem>
                     <SelectItem value="brickwork">Brickwork</SelectItem>
                     <SelectItem value="steel">Steel Reinforcement</SelectItem>
+                    <SelectItem value="tiles">Tiles & Flooring</SelectItem>
+                    <SelectItem value="paint">Paint & Finishing</SelectItem>
+                    <SelectItem value="plaster">Plaster/Rendering</SelectItem>
+                    <SelectItem value="lumber">Lumber/Wood</SelectItem>
+                    <SelectItem value="roofing">Roofing Materials</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -472,6 +543,60 @@ const Calculator = () => {
                   <div className="flex justify-between items-center py-2 border-b">
                     <span className="font-medium">Steel Reinforcement</span>
                     <span className="text-primary font-semibold">{results.steel.toFixed(0)} kg</span>
+                  </div>
+                )}
+                {results.tiles && (
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="font-medium">Tiles</span>
+                    <span className="text-primary font-semibold">{results.tiles.toFixed(2)} m²</span>
+                  </div>
+                )}
+                {results.adhesive && (
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="font-medium">Tile Adhesive</span>
+                    <span className="text-primary font-semibold">{results.adhesive} bags</span>
+                  </div>
+                )}
+                {results.grout && (
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="font-medium">Grout</span>
+                    <span className="text-primary font-semibold">{results.grout} bags</span>
+                  </div>
+                )}
+                {results.paint && (
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="font-medium">Paint</span>
+                    <span className="text-primary font-semibold">{results.paint.toFixed(2)} liters</span>
+                  </div>
+                )}
+                {results.primer && (
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="font-medium">Primer</span>
+                    <span className="text-primary font-semibold">{results.primer.toFixed(2)} liters</span>
+                  </div>
+                )}
+                {results.plaster && (
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="font-medium">Plaster</span>
+                    <span className="text-primary font-semibold">{results.plaster.toFixed(2)} m³</span>
+                  </div>
+                )}
+                {results.lumber && (
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="font-medium">Lumber/Wood</span>
+                    <span className="text-primary font-semibold">{results.lumber.toFixed(2)} m³</span>
+                  </div>
+                )}
+                {results.roofingSheets && (
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="font-medium">Roofing Sheets</span>
+                    <span className="text-primary font-semibold">{results.roofingSheets} sheets</span>
+                  </div>
+                )}
+                {results.roofingAccessories && (
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="font-medium">Roofing Accessories</span>
+                    <span className="text-primary font-semibold">{results.roofingAccessories} pieces</span>
                   </div>
                 )}
               </div>
