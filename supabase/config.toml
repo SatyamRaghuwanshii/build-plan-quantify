@@ -1,5 +1,8 @@
 project_id = "krwahbbojypmjuzklovh"
 
+[functions.ai-chat]
+verify_jwt = false
+
 [functions.generate-floor-plan]
 verify_jwt = false
 

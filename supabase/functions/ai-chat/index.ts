@@ -34,7 +34,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'google/gemini-1.5-flash',
         messages: [
           {
             role: 'system',
@@ -53,6 +53,8 @@ Keep responses practical, professional, and focused on construction topics. When
             content: message
           }
         ],
+        temperature: 0.7,
+        max_tokens: 1000,
       }),
     });
 

@@ -1,3 +1,4 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -12,14 +13,15 @@ serve(async (req) => {
 
   try {
     const { imageUrl } = await req.json();
-    
+
     if (!imageUrl) {
       throw new Error("Image URL is required");
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("LOVABLE_API_KEY is not configured");
+      throw new Error("LOVABLE_API_KEY is not configured. Please set it in your Supabase project settings.");
     }
 
     console.log('Converting floor plan to isometric 3D view');
@@ -65,7 +67,7 @@ Style: Professional architectural isometric rendering, clean and suitable for pr
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
+        model: "google/gemini-1.5-flash",
         messages: [
           {
             role: "user",
@@ -83,7 +85,8 @@ Style: Professional architectural isometric rendering, clean and suitable for pr
             ]
           }
         ],
-        modalities: ["image", "text"]
+        temperature: 0.8,
+        max_tokens: 2000,
       }),
     });
 
@@ -109,23 +112,38 @@ Style: Professional architectural isometric rendering, clean and suitable for pr
     }
 
     const data = await response.json();
-    console.log('3D view generated successfully');
-    
-    const imageUrl3D = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    console.log('AI response received:', JSON.stringify(data, null, 2));
+
+    // Extract the generated image (check multiple possible response formats)
+    let imageUrl3D = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+    // Try alternative response format
+    if (!imageUrl3D && data.choices?.[0]?.message?.image_url) {
+      imageUrl3D = data.choices[0].message.image_url;
+    }
+
+    // Try another alternative format
+    if (!imageUrl3D && data.images && data.images.length > 0) {
+      imageUrl3D = data.images[0].url || data.images[0];
+    }
+
     const textResponse = data.choices?.[0]?.message?.content;
 
     if (!imageUrl3D) {
-      throw new Error("No 3D image generated");
+      console.error("No image URL found in response. Response structure:", JSON.stringify(data, null, 2));
+      throw new Error("No 3D image generated. The AI model may not support image generation from images. Please check your Lovable AI configuration.");
     }
 
+    console.log('3D view generated successfully. Image URL:', imageUrl3D);
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         imageUrl: imageUrl3D,
-        description: textResponse 
-      }), 
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        description: textResponse
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );
 
