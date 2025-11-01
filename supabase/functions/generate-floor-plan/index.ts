@@ -14,10 +14,10 @@ serve(async (req) => {
   try {
     const { prompt, rooms, sqft, style } = await req.json();
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
-      throw new Error("LOVABLE_API_KEY is not configured. Please set it in your Supabase project settings.");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
+      console.error("GEMINI_API_KEY is not configured");
+      throw new Error("GEMINI_API_KEY is not configured. Please set it in your Supabase project settings.");
     }
 
     // Construct detailed prompt with consistent brand style
@@ -52,25 +52,28 @@ LAYOUT STANDARDS:
 
 Style: Clean architectural drafting, professional, suitable for construction documentation.`;
 
-    console.log('Generating floor plan with architectural specifications');
+    console.log('Generating floor plan description with Gemini (Note: Gemini API does not generate images)');
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
+        contents: [
           {
             role: "user",
-            content: basePrompt
+            parts: [
+              {
+                text: basePrompt + "\n\nIMPORTANT: Since image generation is not available, please provide a detailed textual description of the floor plan layout with ASCII art representation if possible."
+              }
+            ]
           }
         ],
-        modalities: ["image", "text"],
-        temperature: 0.8,
-        max_tokens: 2000,
+        generationConfig: {
+          temperature: 0.8,
+          maxOutputTokens: 2000,
+        }
       }),
     });
 
@@ -81,49 +84,30 @@ Style: Clean architectural drafting, professional, suitable for construction doc
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Payment required, please add funds to your Lovable AI workspace." }), 
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("Gemini API error:", response.status, errorText);
       return new Response(
-        JSON.stringify({ error: "AI gateway error" }), 
+        JSON.stringify({ error: "Gemini API error" }), 
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const data = await response.json();
-    console.log('AI response received:', JSON.stringify(data, null, 2));
+    console.log('Gemini response received:', JSON.stringify(data, null, 2));
 
-    // Extract the generated image (check multiple possible response formats)
-    let imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
-    // Try alternative response format
-    if (!imageUrl && data.choices?.[0]?.message?.image_url) {
-      imageUrl = data.choices[0].message.image_url;
+    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+      throw new Error("Invalid response from Gemini API");
     }
 
-    // Try another alternative format
-    if (!imageUrl && data.images && data.images.length > 0) {
-      imageUrl = data.images[0].url || data.images[0];
-    }
+    const textResponse = data.candidates[0].content.parts[0].text;
 
-    const textResponse = data.choices?.[0]?.message?.content;
-
-    if (!imageUrl) {
-      console.error("No image URL found in response. Response structure:", JSON.stringify(data, null, 2));
-      throw new Error("No image generated. The AI model may not support image generation. Please check your Lovable AI configuration.");
-    }
-
-    console.log('Floor plan generated successfully. Image URL:', imageUrl);
+    console.log('Floor plan description generated successfully (text only - no image)');
 
     return new Response(
       JSON.stringify({
-        imageUrl,
-        description: textResponse
+        imageUrl: null,
+        description: textResponse,
+        note: "Image generation is not available with Google Gemini API. Consider using DALL-E or Stable Diffusion for image generation."
       }),
       {
         status: 200,

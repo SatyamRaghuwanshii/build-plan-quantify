@@ -18,129 +18,33 @@ serve(async (req) => {
       throw new Error("Image URL is required");
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
-      throw new Error("LOVABLE_API_KEY is not configured. Please set it in your Supabase project settings.");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
+      console.error("GEMINI_API_KEY is not configured");
+      throw new Error("GEMINI_API_KEY is not configured. Please set it in your Supabase project settings.");
     }
 
-    console.log('Converting floor plan to isometric 3D view');
+    console.log('Analyzing floor plan with Gemini (Note: 3D image generation not available)');
 
-    const isometricPrompt = `Transform this 2D architectural floor plan into a professional isometric 3D architectural rendering.
+    const isometricPrompt = `Based on the floor plan image provided, create a detailed textual description of how it would look as a professional isometric 3D architectural rendering.
 
-ISOMETRIC VIEW REQUIREMENTS:
-- Use true isometric perspective (120° angles between axes)
-- View from 45-degree angle from above and slightly to the side
-- Maintain exact floor plan layout and room proportions from the 2D plan
+DESCRIBE THE ISOMETRIC VIEW:
+- How the view would look from 45-degree angle from above
+- The 3D appearance of walls with realistic height (8-9 feet) and thickness
+- How doors and windows would appear in 3D
+- The furniture pieces in 3D perspective
+- Kitchen cabinets, appliances, and countertops in 3D
+- Bathroom fixtures in 3D
+- Materials and textures (wood floors, tile, carpet)
+- Lighting and shadows
 
-3D ARCHITECTURAL ELEMENTS:
-- Show walls with realistic height (8-9 feet) and thickness
-- Display ceiling/roof structure in the isometric style
-- Include all doors in 3D (open or closed positions showing depth)
-- Show windows with frames, glass, and depth
-- Render furniture pieces in 3D matching the floor plan layout
-- Add kitchen cabinets, appliances, and countertops in 3D
-- Show bathroom fixtures (toilet, sink, shower/tub) in 3D
-- Include closets with depth and shelving if visible
-
-VISUAL STYLING:
-- Clean architectural rendering style
-- Subtle shadows and ambient occlusion for depth
-- Light neutral colors (whites, beiges, light grays)
-- Realistic materials (wood floors, tile, carpet textures)
-- Professional architectural visualization quality
-- Maintain clean lines and geometric precision
-
-TECHNICAL ACCURACY:
-- Preserve all room dimensions from the 2D plan
-- Keep walls aligned and parallel/perpendicular as appropriate
-- Show proper door swing directions from the floor plan
-- Maintain furniture placement and scale from 2D layout
-- Include any outdoor spaces (patios, decks) if present in plan
-
-Style: Professional architectural isometric rendering, clean and suitable for presentations.`;
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: isometricPrompt
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: imageUrl
-                }
-              }
-            ]
-          }
-        ],
-        modalities: ["image", "text"],
-        temperature: 0.8,
-        max_tokens: 2000,
-      }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limits exceeded, please try again later." }), 
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Payment required, please add funds to your Lovable AI workspace." }), 
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      return new Response(
-        JSON.stringify({ error: "AI gateway error" }), 
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const data = await response.json();
-    console.log('AI response received:', JSON.stringify(data, null, 2));
-
-    // Extract the generated image (check multiple possible response formats)
-    let imageUrl3D = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
-    // Try alternative response format
-    if (!imageUrl3D && data.choices?.[0]?.message?.image_url) {
-      imageUrl3D = data.choices[0].message.image_url;
-    }
-
-    // Try another alternative format
-    if (!imageUrl3D && data.images && data.images.length > 0) {
-      imageUrl3D = data.images[0].url || data.images[0];
-    }
-
-    const textResponse = data.choices?.[0]?.message?.content;
-
-    if (!imageUrl3D) {
-      console.error("No image URL found in response. Response structure:", JSON.stringify(data, null, 2));
-      throw new Error("No 3D image generated. The AI model may not support image generation from images. Please check your Lovable AI configuration.");
-    }
-
-    console.log('3D view generated successfully. Image URL:', imageUrl3D);
+Provide a comprehensive description suitable for visualization, since actual 3D image generation is not available.`;
 
     return new Response(
       JSON.stringify({
-        imageUrl: imageUrl3D,
-        description: textResponse
+        imageUrl: null,
+        description: "3D image generation is not available with Google Gemini API. To generate actual 3D isometric images, you would need to integrate with DALL-E 3, Stable Diffusion, or similar image generation services.",
+        note: "Consider using DALL-E 3 or Stable Diffusion for actual image generation."
       }),
       {
         status: 200,
