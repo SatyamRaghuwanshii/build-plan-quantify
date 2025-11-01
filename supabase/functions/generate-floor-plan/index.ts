@@ -95,11 +95,17 @@ Style: Clean architectural drafting, professional, suitable for construction doc
     const data = await response.json();
     console.log('Gemini response received:', JSON.stringify(data, null, 2));
 
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+    if (!data.candidates || !data.candidates[0]) {
       throw new Error("Invalid response from Gemini API");
     }
 
-    const textResponse = data.candidates[0].content.parts[0].text;
+    const candidate = data.candidates[0];
+    const parts = candidate.content?.parts ?? [];
+    const texts = parts.map((p: any) => p?.text).filter(Boolean);
+    const textResponse = (texts.join("\n")).trim();
+    if (!textResponse) {
+      throw new Error("Empty response from Gemini API");
+    }
 
     console.log('Floor plan description generated successfully');
 

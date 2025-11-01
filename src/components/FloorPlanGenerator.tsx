@@ -93,7 +93,7 @@ export const FloorPlanGenerator = ({}: FloorPlanGeneratorProps) => {
         }
         return;
       }
-
+      console.log('generate-floor-plan response:', data);
       if (data?.description) {
         // Generate SVG floor plan from specs
         const svgDataUrl = generateFloorPlanSVG(data.specs);
