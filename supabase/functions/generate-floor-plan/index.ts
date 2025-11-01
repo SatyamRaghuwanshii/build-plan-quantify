@@ -59,14 +59,15 @@ Style: Clean architectural drafting, professional, suitable for construction doc
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
+        model: "google/gemini-1.5-flash",
         messages: [
           {
             role: "user",
             content: basePrompt
           }
         ],
-        modalities: ["image", "text"]
+        temperature: 0.8,
+        max_tokens: 2000,
       }),
     });
 
