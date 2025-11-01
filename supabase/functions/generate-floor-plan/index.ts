@@ -95,24 +95,38 @@ Style: Clean architectural drafting, professional, suitable for construction doc
     }
 
     const data = await response.json();
-    console.log('Floor plan generated successfully');
-    
-    // Extract the generated image
-    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    console.log('AI response received:', JSON.stringify(data, null, 2));
+
+    // Extract the generated image (check multiple possible response formats)
+    let imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+    // Try alternative response format
+    if (!imageUrl && data.choices?.[0]?.message?.image_url) {
+      imageUrl = data.choices[0].message.image_url;
+    }
+
+    // Try another alternative format
+    if (!imageUrl && data.images && data.images.length > 0) {
+      imageUrl = data.images[0].url || data.images[0];
+    }
+
     const textResponse = data.choices?.[0]?.message?.content;
 
     if (!imageUrl) {
-      throw new Error("No image generated");
+      console.error("No image URL found in response. Response structure:", JSON.stringify(data, null, 2));
+      throw new Error("No image generated. The AI model may not support image generation. Please check your Lovable AI configuration.");
     }
 
+    console.log('Floor plan generated successfully. Image URL:', imageUrl);
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         imageUrl,
-        description: textResponse 
-      }), 
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        description: textResponse
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );
 
