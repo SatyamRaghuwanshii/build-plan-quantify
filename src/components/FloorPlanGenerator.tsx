@@ -11,6 +11,54 @@ import { Loader2, Download } from 'lucide-react';
 
 interface FloorPlanGeneratorProps {}
 
+const generateFloorPlanSVG = (specs: { rooms: string; sqft: string; style: string; prompt?: string }) => {
+  const width = 800;
+  const height = 600;
+  const rooms = parseInt(specs.rooms);
+  
+  let svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">`;
+  svg += `<rect width="${width}" height="${height}" fill="#ffffff"/>`;
+  svg += `<style>.room { fill: #f0f0f0; stroke: #333; stroke-width: 2; } .label { font-family: Arial; font-size: 14px; fill: #333; text-anchor: middle; } .title { font-family: Arial; font-size: 16px; font-weight: bold; fill: #333; }</style>`;
+  
+  // Title
+  svg += `<text x="${width/2}" y="30" class="title">${specs.style.charAt(0).toUpperCase() + specs.style.slice(1)} Floor Plan - ${specs.sqft} sqft</text>`;
+  
+  // Generate rooms based on count
+  const roomConfigs = [
+    { x: 50, y: 80, w: 250, h: 200, label: 'Living Room' },
+    { x: 320, y: 80, w: 200, h: 150, label: 'Kitchen' },
+    { x: 540, y: 80, w: 210, h: 150, label: 'Dining' },
+    { x: 50, y: 300, w: 180, h: 250, label: 'Master Bedroom' },
+    { x: 250, y: 300, w: 160, h: 120, label: 'Bedroom 2' },
+    { x: 430, y: 300, w: 160, h: 120, label: 'Bedroom 3' },
+    { x: 610, y: 300, w: 140, h: 120, label: 'Bedroom 4' },
+    { x: 250, y: 440, w: 160, h: 110, label: 'Bathroom' },
+    { x: 430, y: 440, w: 160, h: 110, label: 'Bathroom 2' },
+  ];
+  
+  // Draw main rooms based on bedroom count
+  const roomsToDraw = Math.min(3 + rooms, roomConfigs.length);
+  for (let i = 0; i < roomsToDraw; i++) {
+    const room = roomConfigs[i];
+    svg += `<rect x="${room.x}" y="${room.y}" width="${room.w}" height="${room.h}" class="room"/>`;
+    svg += `<text x="${room.x + room.w/2}" y="${room.y + room.h/2}" class="label">${room.label}</text>`;
+    
+    // Add dimensions
+    const dimW = Math.floor(room.w / 10);
+    const dimH = Math.floor(room.h / 10);
+    svg += `<text x="${room.x + room.w/2}" y="${room.y + room.h/2 + 20}" style="font-size: 11px; fill: #666; text-anchor: middle;">${dimW}'×${dimH}'</text>`;
+  }
+  
+  // Add compass
+  svg += `<circle cx="730" cy="530" r="30" fill="none" stroke="#333" stroke-width="2"/>`;
+  svg += `<line x1="730" y1="500" x2="730" y2="510" stroke="#333" stroke-width="2"/>`;
+  svg += `<text x="730" y="495" style="font-size: 10px; fill: #333; text-anchor: middle;">N</text>`;
+  
+  svg += `</svg>`;
+  
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+};
+
 export const FloorPlanGenerator = ({}: FloorPlanGeneratorProps) => {
   const [rooms, setRooms] = useState('3');
   const [sqft, setSqft] = useState('2000');
@@ -19,16 +67,11 @@ export const FloorPlanGenerator = ({}: FloorPlanGeneratorProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [description, setDescription] = useState<string | null>(null);
-  const [isConverting, setIsConverting] = useState(false);
-  const [image3D, setImage3D] = useState<string | null>(null);
-  const [description3D, setDescription3D] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     setIsGenerating(true);
     setGeneratedImage(null);
     setDescription(null);
-    setImage3D(null);
-    setDescription3D(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-floor-plan', {
@@ -51,56 +94,20 @@ export const FloorPlanGenerator = ({}: FloorPlanGeneratorProps) => {
         return;
       }
 
-      if (data?.imageUrl) {
-        setGeneratedImage(data.imageUrl);
+      if (data?.description) {
+        // Generate SVG floor plan from specs
+        const svgDataUrl = generateFloorPlanSVG(data.specs);
+        setGeneratedImage(svgDataUrl);
         setDescription(data.description);
         toast.success('Floor plan generated successfully!');
       } else {
-        toast.error('No image generated');
+        toast.error('No floor plan generated');
       }
     } catch (err) {
       console.error('Error generating floor plan:', err);
       toast.error('An error occurred while generating the floor plan');
     } finally {
       setIsGenerating(false);
-    }
-  };
-
-  const handleConvertTo3D = async () => {
-    if (!generatedImage) return;
-    
-    setIsConverting(true);
-    setImage3D(null);
-    setDescription3D(null);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('convert-to-3d', {
-        body: { imageUrl: generatedImage }
-      });
-
-      if (error) {
-        if (error.message.includes('429')) {
-          toast.error('Rate limit exceeded. Please try again later.');
-        } else if (error.message.includes('402')) {
-          toast.error('Please add credits to your Lovable AI workspace.');
-        } else {
-          toast.error('Failed to convert to 3D: ' + error.message);
-        }
-        return;
-      }
-
-      if (data?.imageUrl) {
-        setImage3D(data.imageUrl);
-        setDescription3D(data.description);
-        toast.success('3D view generated successfully!');
-      } else {
-        toast.error('No 3D image generated');
-      }
-    } catch (err) {
-      console.error('Error converting to 3D:', err);
-      toast.error('An error occurred while converting to 3D');
-    } finally {
-      setIsConverting(false);
     }
   };
 
@@ -187,84 +194,34 @@ export const FloorPlanGenerator = ({}: FloorPlanGeneratorProps) => {
           </Button>
 
           {generatedImage && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* 2D Floor Plan */}
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold">2D Floor Plan</h3>
-                  <div className="border rounded-lg overflow-hidden">
-                    <img 
-                      src={generatedImage} 
-                      alt="Generated floor plan" 
-                      className="w-full h-auto"
-                    />
-                  </div>
-                  {description && (
-                    <p className="text-sm text-muted-foreground">{description}</p>
-                  )}
+            <div className="space-y-4 animate-fade-in">
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold">Generated Floor Plan</h3>
+                <div className="border rounded-lg overflow-hidden bg-white p-4">
+                  <img 
+                    src={generatedImage} 
+                    alt="Generated floor plan" 
+                    className="w-full h-auto"
+                  />
                 </div>
-
-                {/* 3D Isometric View */}
-                {image3D && (
-                  <div className="space-y-3">
-                    <h3 className="text-lg font-semibold">Isometric 3D View</h3>
-                    <div className="border rounded-lg overflow-hidden">
-                      <img 
-                        src={image3D} 
-                        alt="Isometric 3D view" 
-                        className="w-full h-auto"
-                      />
-                    </div>
-                    {description3D && (
-                      <p className="text-sm text-muted-foreground">{description3D}</p>
-                    )}
-                  </div>
+                {description && (
+                  <p className="text-sm text-muted-foreground">{description}</p>
                 )}
               </div>
 
               <div className="flex flex-wrap gap-2">
                 <Button 
-                  onClick={handleConvertTo3D}
-                  disabled={isConverting}
-                  variant={image3D ? "outline" : "default"}
-                >
-                  {isConverting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Converting to 3D...
-                    </>
-                  ) : image3D ? (
-                    'Regenerate 3D View'
-                  ) : (
-                    'Convert to Isometric 3D'
-                  )}
-                </Button>
-                
-                <Button 
                   variant="outline" 
                   onClick={() => {
                     const link = document.createElement('a');
                     link.href = generatedImage;
-                    link.download = 'floor-plan-2d.png';
+                    link.download = 'floor-plan.svg';
                     link.click();
                   }}
                 >
-                  Download 2D
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Floor Plan
                 </Button>
-
-                {image3D && (
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      const link = document.createElement('a');
-                      link.href = image3D;
-                      link.download = 'floor-plan-3d.png';
-                      link.click();
-                    }}
-                  >
-                    Download 3D
-                  </Button>
-                )}
 
                 <Button 
                   variant="outline" 

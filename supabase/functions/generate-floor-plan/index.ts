@@ -101,13 +101,12 @@ Style: Clean architectural drafting, professional, suitable for construction doc
 
     const textResponse = data.candidates[0].content.parts[0].text;
 
-    console.log('Floor plan description generated successfully (text only - no image)');
+    console.log('Floor plan description generated successfully');
 
     return new Response(
       JSON.stringify({
-        imageUrl: null,
         description: textResponse,
-        note: "Image generation is not available with Google Gemini API. Consider using DALL-E or Stable Diffusion for image generation."
+        specs: { rooms, sqft, style, prompt }
       }),
       {
         status: 200,
