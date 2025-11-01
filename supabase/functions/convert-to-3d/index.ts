@@ -112,23 +112,38 @@ Style: Professional architectural isometric rendering, clean and suitable for pr
     }
 
     const data = await response.json();
-    console.log('3D view generated successfully');
-    
-    const imageUrl3D = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    console.log('AI response received:', JSON.stringify(data, null, 2));
+
+    // Extract the generated image (check multiple possible response formats)
+    let imageUrl3D = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+    // Try alternative response format
+    if (!imageUrl3D && data.choices?.[0]?.message?.image_url) {
+      imageUrl3D = data.choices[0].message.image_url;
+    }
+
+    // Try another alternative format
+    if (!imageUrl3D && data.images && data.images.length > 0) {
+      imageUrl3D = data.images[0].url || data.images[0];
+    }
+
     const textResponse = data.choices?.[0]?.message?.content;
 
     if (!imageUrl3D) {
-      throw new Error("No 3D image generated");
+      console.error("No image URL found in response. Response structure:", JSON.stringify(data, null, 2));
+      throw new Error("No 3D image generated. The AI model may not support image generation from images. Please check your Lovable AI configuration.");
     }
 
+    console.log('3D view generated successfully. Image URL:', imageUrl3D);
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         imageUrl: imageUrl3D,
-        description: textResponse 
-      }), 
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        description: textResponse
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );
 
