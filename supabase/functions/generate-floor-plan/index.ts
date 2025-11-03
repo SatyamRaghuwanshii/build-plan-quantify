@@ -52,7 +52,7 @@ LAYOUT STANDARDS:
 
 Style: Clean architectural drafting, professional, black and white technical drawing.`;
 
-    console.log('Generating floor plan image with nano banana (gemini-2.5-flash-image)');
+    console.log('Generating floor plan image with nano banana (gemini-2.5-flash-image-preview)');
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -61,14 +61,14 @@ Style: Clean architectural drafting, professional, black and white technical dra
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
+        model: "google/gemini-2.5-flash-image-preview",
         messages: [
           {
             role: "user",
             content: basePrompt
           }
         ],
-        max_tokens: 1024
+        modalities: ["image", "text"]
       }),
     });
 
@@ -100,9 +100,10 @@ Style: Clean architectural drafting, professional, black and white technical dra
       throw new Error("Invalid response from Lovable AI");
     }
 
-    const imageUrl = data.choices[0]?.message?.content;
+    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     if (!imageUrl) {
-      throw new Error("No image URL in response");
+      console.error('No image in response. Full response:', JSON.stringify(data, null, 2));
+      throw new Error("No image generated in response");
     }
 
     console.log('Floor plan image generated successfully');
