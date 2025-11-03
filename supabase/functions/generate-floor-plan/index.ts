@@ -68,7 +68,7 @@ Style: Clean architectural drafting, professional, black and white technical dra
         }],
         generationConfig: {
           temperature: 0.4,
-          responseModalities: ["IMAGE"]
+          responseModalities: ["IMAGE", "TEXT"]
         }
       }),
     });
