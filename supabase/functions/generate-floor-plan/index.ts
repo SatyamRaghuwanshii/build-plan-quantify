@@ -52,7 +52,7 @@ LAYOUT STANDARDS:
 
 Style: Clean architectural drafting, professional, black and white technical drawing.`;
 
-    console.log('Generating floor plan image with Gemini 2.5 Flash Image');
+    console.log('Generating floor plan image with Gemini 2.0 Flash Experimental');
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
@@ -61,16 +61,14 @@ Style: Clean architectural drafting, professional, black and white technical dra
       },
       body: JSON.stringify({
         contents: [{
+          role: "user",
           parts: [{
             text: basePrompt
           }]
         }],
         generationConfig: {
           temperature: 0.4,
-          topK: 32,
-          topP: 1,
-          maxOutputTokens: 8192,
-          responseMimeType: "image/png"
+          responseModalities: ["IMAGE"]
         }
       }),
     });
