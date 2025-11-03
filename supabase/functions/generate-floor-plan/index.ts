@@ -14,13 +14,13 @@ serve(async (req) => {
   try {
     const { prompt, rooms, sqft, style } = await req.json();
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) {
-      console.error("GEMINI_API_KEY is not configured");
-      throw new Error("GEMINI_API_KEY is not configured. Please set it in your Supabase project settings.");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY is not configured");
+      throw new Error("LOVABLE_API_KEY is not configured. Please set it in your Supabase project settings.");
     }
 
-    // Construct detailed prompt with consistent brand style
+    // Construct detailed prompt for image generation
     const basePrompt = `Create a professional architectural floor plan in technical drawing style. 
     
 SPECIFICATIONS:
@@ -50,30 +50,25 @@ LAYOUT STANDARDS:
 - Standard door widths (30"-36")
 - Realistic room proportions and flow
 
-Style: Clean architectural drafting, professional, suitable for construction documentation.`;
+Style: Clean architectural drafting, professional, black and white technical drawing.`;
 
-    console.log('Generating floor plan description with Gemini (Note: Gemini API does not generate images)');
+    console.log('Generating floor plan image with nano banana (gemini-2.5-flash-image)');
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        contents: [
+        model: "google/gemini-2.5-flash-image",
+        messages: [
           {
             role: "user",
-            parts: [
-              {
-                text: basePrompt + "\n\nIMPORTANT: Since image generation is not available, please provide a detailed textual description of the floor plan layout with ASCII art representation if possible."
-              }
-            ]
+            content: basePrompt
           }
         ],
-        generationConfig: {
-          temperature: 0.8,
-          maxOutputTokens: 2000,
-        }
+        max_tokens: 1024
       }),
     });
 
@@ -84,34 +79,37 @@ Style: Clean architectural drafting, professional, suitable for construction doc
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "Payment required. Please add credits to your Lovable workspace." }), 
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
+      console.error("Lovable AI error:", response.status, errorText);
       return new Response(
-        JSON.stringify({ error: "Gemini API error" }), 
+        JSON.stringify({ error: "AI gateway error" }), 
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const data = await response.json();
-    console.log('Gemini response received:', JSON.stringify(data, null, 2));
+    console.log('Lovable AI response received:', JSON.stringify(data, null, 2));
 
-    if (!data.candidates || !data.candidates[0]) {
-      throw new Error("Invalid response from Gemini API");
+    if (!data.choices || !data.choices[0]) {
+      throw new Error("Invalid response from Lovable AI");
     }
 
-    const candidate = data.candidates[0];
-    const parts = candidate.content?.parts ?? [];
-    const texts = parts.map((p: any) => p?.text).filter(Boolean);
-    const textResponse = (texts.join("\n")).trim();
-    if (!textResponse) {
-      throw new Error("Empty response from Gemini API");
+    const imageUrl = data.choices[0]?.message?.content;
+    if (!imageUrl) {
+      throw new Error("No image URL in response");
     }
 
-    console.log('Floor plan description generated successfully');
+    console.log('Floor plan image generated successfully');
 
     return new Response(
       JSON.stringify({
-        description: textResponse,
+        imageUrl: imageUrl,
         specs: { rooms, sqft, style, prompt }
       }),
       {
