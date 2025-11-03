@@ -74,40 +74,41 @@ Style: Clean architectural drafting, professional, black and white technical dra
     });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limits exceeded, please try again later." }), 
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Payment required. Please add credits to your Lovable workspace." }), 
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
       const errorText = await response.text();
-      console.error("Lovable AI error:", response.status, errorText);
+      console.error("Gemini API error:", response.status, errorText);
+      let details = errorText;
+      try {
+        const parsed = JSON.parse(errorText);
+        details = parsed.error?.message || errorText;
+      } catch (_) {}
       return new Response(
-        JSON.stringify({ error: "AI gateway error" }), 
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Gemini API error", details }),
+        { status: response.status || 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const data = await response.json();
     console.log('Gemini API response received:', JSON.stringify(data, null, 2));
 
-    if (!data.candidates || !data.candidates[0]) {
-      throw new Error("Invalid response from Gemini API");
+    const candidates = data.candidates || [];
+    let inlineData: any = undefined;
+    for (const cand of candidates) {
+      const parts = cand.content?.parts || [];
+      for (const part of parts) {
+        if (part.inlineData?.data) { inlineData = part.inlineData; break; }
+      }
+      if (inlineData) break;
     }
 
-    const inlineData = data.candidates[0]?.content?.parts?.[0]?.inlineData;
     if (!inlineData?.data) {
       console.error('No image in response. Full response:', JSON.stringify(data, null, 2));
-      throw new Error("No image generated in response");
+      return new Response(
+        JSON.stringify({ error: 'No image generated in response', details: data }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    const imageUrl = `data:${inlineData.mimeType};base64,${inlineData.data}`;
+    const imageUrl = `data:${inlineData.mimeType || 'image/png'};base64,${inlineData.data}`;
 
     console.log('Floor plan image generated successfully');
 
