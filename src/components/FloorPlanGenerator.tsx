@@ -19,11 +19,14 @@ export const FloorPlanGenerator = ({}: FloorPlanGeneratorProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [description, setDescription] = useState<string | null>(null);
+  const [isConverting, setIsConverting] = useState(false);
+  const [isometricImage, setIsometricImage] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     setIsGenerating(true);
     setGeneratedImage(null);
     setDescription(null);
+    setIsometricImage(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-floor-plan', {
@@ -58,6 +61,49 @@ export const FloorPlanGenerator = ({}: FloorPlanGeneratorProps) => {
       toast.error('An error occurred while generating the floor plan');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleConvertTo3D = async () => {
+    if (!generatedImage) return;
+    
+    setIsConverting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('convert-to-3d', {
+        body: {
+          imageUrl: generatedImage,
+          prompt: `Convert this 2D architectural floor plan into an isometric 3D view. 
+          
+Requirements:
+- Create an isometric projection (30-degree angle view from above)
+- Show walls in 3D with realistic height
+- Add depth to all rooms and architectural elements
+- Maintain accurate room proportions and dimensions
+- Include 3D furniture and fixtures
+- Add shading and shadows for depth
+- Use professional architectural visualization style
+- Keep the clean, technical drawing aesthetic
+
+The result should look like a professional architectural isometric drawing with proper perspective and depth.`
+        }
+      });
+
+      if (error) {
+        toast.error('Failed to convert to 3D: ' + error.message);
+        return;
+      }
+
+      if (data?.imageUrl) {
+        setIsometricImage(data.imageUrl);
+        toast.success('Converted to isometric 3D view!');
+      } else {
+        toast.error('No 3D image generated');
+      }
+    } catch (err) {
+      console.error('Error converting to 3D:', err);
+      toast.error('An error occurred while converting to 3D');
+    } finally {
+      setIsConverting(false);
     }
   };
 
@@ -175,11 +221,51 @@ export const FloorPlanGenerator = ({}: FloorPlanGeneratorProps) => {
 
                 <Button 
                   variant="outline" 
+                  onClick={handleConvertTo3D}
+                  disabled={isConverting}
+                >
+                  {isConverting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Converting to 3D...
+                    </>
+                  ) : (
+                    'Convert to Isometric 3D'
+                  )}
+                </Button>
+
+                <Button 
+                  variant="outline" 
                   onClick={handleGenerate}
                 >
                   Generate New Plan
                 </Button>
               </div>
+
+              {isometricImage && (
+                <div className="space-y-3 mt-6">
+                  <h3 className="text-lg font-semibold">Isometric 3D View</h3>
+                  <div className="border rounded-lg overflow-hidden bg-white p-4">
+                    <img 
+                      src={isometricImage} 
+                      alt="Isometric 3D floor plan" 
+                      className="w-full h-auto"
+                    />
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = isometricImage;
+                      link.download = 'floor-plan-3d.png';
+                      link.click();
+                    }}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download 3D View
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

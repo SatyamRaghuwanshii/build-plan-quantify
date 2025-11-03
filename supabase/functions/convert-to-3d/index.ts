@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageUrl } = await req.json();
+    const { imageUrl, prompt } = await req.json();
 
     if (!imageUrl) {
       throw new Error("Image URL is required");
@@ -24,27 +24,93 @@ serve(async (req) => {
       throw new Error("GEMINI_API_KEY is not configured. Please set it in your Supabase project settings.");
     }
 
-    console.log('Analyzing floor plan with Gemini (Note: 3D image generation not available)');
+    console.log('Converting floor plan to isometric 3D with Gemini 2.5 Flash Image');
 
-    const isometricPrompt = `Based on the floor plan image provided, create a detailed textual description of how it would look as a professional isometric 3D architectural rendering.
+    // Extract base64 data from data URL if present
+    let imageData = imageUrl;
+    let mimeType = 'image/png';
+    
+    if (imageUrl.startsWith('data:')) {
+      const matches = imageUrl.match(/^data:(.+?);base64,(.+)$/);
+      if (matches) {
+        mimeType = matches[1];
+        imageData = matches[2];
+      }
+    } else {
+      // If it's a URL, fetch the image and convert to base64
+      const imageResponse = await fetch(imageUrl);
+      const imageBuffer = await imageResponse.arrayBuffer();
+      imageData = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+    }
 
-DESCRIBE THE ISOMETRIC VIEW:
-- How the view would look from 45-degree angle from above
-- The 3D appearance of walls with realistic height (8-9 feet) and thickness
-- How doors and windows would appear in 3D
-- The furniture pieces in 3D perspective
-- Kitchen cabinets, appliances, and countertops in 3D
-- Bathroom fixtures in 3D
-- Materials and textures (wood floors, tile, carpet)
-- Lighting and shadows
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${GEMINI_API_KEY}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [{
+          role: "user",
+          parts: [
+            {
+              text: prompt || `Convert this 2D architectural floor plan into an isometric 3D view with proper perspective, depth, and architectural details.`
+            },
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: imageData
+              }
+            }
+          ]
+        }],
+        generationConfig: {
+          temperature: 0.4,
+          responseModalities: ["IMAGE", "TEXT"]
+        }
+      }),
+    });
 
-Provide a comprehensive description suitable for visualization, since actual 3D image generation is not available.`;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Gemini API error:", response.status, errorText);
+      let details = errorText;
+      try {
+        const parsed = JSON.parse(errorText);
+        details = parsed.error?.message || errorText;
+      } catch (_) {}
+      return new Response(
+        JSON.stringify({ error: "Gemini API error", details }),
+        { status: response.status || 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const data = await response.json();
+    console.log('Gemini API response received for 3D conversion');
+
+    const candidates = data.candidates || [];
+    let inlineData: any = undefined;
+    for (const cand of candidates) {
+      const parts = cand.content?.parts || [];
+      for (const part of parts) {
+        if (part.inlineData?.data) { inlineData = part.inlineData; break; }
+      }
+      if (inlineData) break;
+    }
+
+    if (!inlineData?.data) {
+      console.error('No image in response. Full response:', JSON.stringify(data, null, 2));
+      return new Response(
+        JSON.stringify({ error: 'No 3D image generated in response', details: data }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const convertedImageUrl = `data:${inlineData.mimeType || 'image/png'};base64,${inlineData.data}`;
+    console.log('3D conversion successful');
 
     return new Response(
       JSON.stringify({
-        imageUrl: null,
-        description: "3D image generation is not available with Google Gemini API. To generate actual 3D isometric images, you would need to integrate with DALL-E 3, Stable Diffusion, or similar image generation services.",
-        note: "Consider using DALL-E 3 or Stable Diffusion for actual image generation."
+        imageUrl: convertedImageUrl
       }),
       {
         status: 200,
