@@ -18,59 +18,88 @@ serve(async (req) => {
       throw new Error("Image URL is required");
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
-      throw new Error("LOVABLE_API_KEY is not configured.");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
+      console.error("GEMINI_API_KEY is not configured");
+      throw new Error("GEMINI_API_KEY not configured. Please add it in Supabase Edge Functions secrets.");
     }
 
-    console.log('Converting floor plan to isometric 3D with Lovable AI (Nano banana)');
+    console.log('Converting floor plan to isometric 3D with Gemini 2.5 Flash Image');
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        messages: [{
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: prompt || `Convert this 2D architectural floor plan into an isometric 3D view with proper perspective, depth, and architectural details.`
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: imageUrl
+    // Fetch the image and convert to base64 if it's a URL
+    let imageData = imageUrl;
+    if (imageUrl.startsWith('http')) {
+      const imgResponse = await fetch(imageUrl);
+      const blob = await imgResponse.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      imageData = `data:${blob.type};base64,${base64}`;
+    }
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              {
+                text: prompt || `Convert this 2D architectural floor plan into an isometric 3D view with proper perspective, depth, and architectural details. Show walls with height, add shadows, and create a professional isometric projection.`
+              },
+              {
+                inlineData: {
+                  mimeType: imageData.split(';')[0].split(':')[1],
+                  data: imageData.split(',')[1]
+                }
               }
-            }
-          ]
-        }],
-        modalities: ["image", "text"]
-      }),
-    });
+            ]
+          }],
+          generationConfig: {
+            temperature: 0.4,
+            responseMimeType: "image/png"
+          }
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Lovable AI error:", response.status, errorText);
-      let details = errorText;
-      try {
-        const parsed = JSON.parse(errorText);
-        details = parsed.error?.message || errorText;
-      } catch (_) {}
+      console.error("Gemini API error:", response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ 
+            error: "Rate limit exceeded", 
+            details: "Gemini API rate limit reached. Please wait a moment and try again, or upgrade your quota at https://aistudio.google.com/apikey" 
+          }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
       return new Response(
-        JSON.stringify({ error: "Lovable AI error", details }),
+        JSON.stringify({ error: "Gemini API error", details: errorText }),
         { status: response.status || 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const data = await response.json();
-    console.log('Lovable AI response received for 3D conversion');
+    console.log('Gemini response received for 3D conversion');
 
-    const convertedImageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    const convertedImageData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    const mimeType = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.mimeType || "image/png";
+    
+    if (!convertedImageData) {
+      console.error('No image in response. Full response:', JSON.stringify(data, null, 2));
+      return new Response(
+        JSON.stringify({ error: 'No 3D image generated in response', details: data }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const convertedImageUrl = `data:${mimeType};base64,${convertedImageData}`;
 
     if (!convertedImageUrl) {
       console.error('No image in response. Full response:', JSON.stringify(data, null, 2));
