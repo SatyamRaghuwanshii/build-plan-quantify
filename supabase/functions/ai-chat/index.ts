@@ -19,12 +19,13 @@ serve(async (req) => {
       throw new Error('Message is required');
     }
 
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-    if (!geminiApiKey) {
-      throw new Error('GEMINI_API_KEY not configured');
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY is not configured");
+      throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log('Calling Google Gemini API...');
+    console.log('Calling Lovable AI (Gemini 2.5 Flash)...');
 
     const systemPrompt = `You are an AI Construction Assistant specializing in helping users with construction projects. You provide helpful advice on:
 
@@ -36,49 +37,53 @@ serve(async (req) => {
 
 Keep responses practical, professional, and focused on construction topics. When appropriate, suggest specific actions like using the calculator tool, browsing the marketplace, or hiring experts.`;
 
-    // Call Google Gemini API
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${geminiApiKey}`, {
-      method: 'POST',
+    // Call Lovable AI Gateway
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                text: `${systemPrompt}\n\nUser: ${message}`
-              }
-            ]
-          }
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: message }
         ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1000,
-        }
+        temperature: 0.7,
+        max_tokens: 1000,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Google Gemini API error:', response.status, errorText);
+      console.error("Lovable AI error:", response.status, errorText);
       
       if (response.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again in a moment.');
+        throw new Error('Rate limit exceeded. Please try again later or add credits to your Lovable AI workspace.');
       }
       
-      throw new Error(`Gemini API error: ${response.statusText}`);
+      if (response.status === 402) {
+        throw new Error('Payment required. Please add credits to your Lovable AI workspace.');
+      }
+      
+      let details = errorText;
+      try {
+        const parsed = JSON.parse(errorText);
+        details = parsed.error?.message || errorText;
+      } catch (_) {}
+      
+      throw new Error(`Lovable AI error: ${details}`);
     }
 
     const data = await response.json();
     console.log('AI response received');
     
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-      throw new Error('Invalid response from Gemini API');
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Invalid response from Lovable AI');
     }
 
-    const aiResponse = data.candidates[0].content.parts[0].text;
+    const aiResponse = data.choices[0].message.content;
 
     return new Response(
       JSON.stringify({ response: aiResponse }),
