@@ -14,10 +14,10 @@ serve(async (req) => {
   try {
     const { prompt, rooms, sqft, style } = await req.json();
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) {
-      console.error("GEMINI_API_KEY is not configured");
-      throw new Error("GEMINI_API_KEY is not configured. Please set it in your Supabase project settings.");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY is not configured");
+      throw new Error("LOVABLE_API_KEY is not configured.");
     }
 
     // Construct detailed prompt for image generation
@@ -52,63 +52,50 @@ LAYOUT STANDARDS:
 
 Style: Clean architectural drafting, professional, black and white technical drawing.`;
 
-    console.log('Generating floor plan image with Gemini 2.5 Flash Image');
+    console.log('Generating floor plan image with Lovable AI (Nano banana)');
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        contents: [{
+        model: "google/gemini-2.5-flash-image",
+        messages: [{
           role: "user",
-          parts: [{
-            text: basePrompt
-          }]
+          content: basePrompt
         }],
-        generationConfig: {
-          temperature: 0.4,
-          responseModalities: ["IMAGE", "TEXT"]
-        }
+        modalities: ["image", "text"]
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
+      console.error("Lovable AI error:", response.status, errorText);
       let details = errorText;
       try {
         const parsed = JSON.parse(errorText);
         details = parsed.error?.message || errorText;
       } catch (_) {}
       return new Response(
-        JSON.stringify({ error: "Gemini API error", details }),
+        JSON.stringify({ error: "Lovable AI error", details }),
         { status: response.status || 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const data = await response.json();
-    console.log('Gemini API response received:', JSON.stringify(data, null, 2));
+    console.log('Lovable AI response received');
 
-    const candidates = data.candidates || [];
-    let inlineData: any = undefined;
-    for (const cand of candidates) {
-      const parts = cand.content?.parts || [];
-      for (const part of parts) {
-        if (part.inlineData?.data) { inlineData = part.inlineData; break; }
-      }
-      if (inlineData) break;
-    }
+    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
-    if (!inlineData?.data) {
+    if (!imageUrl) {
       console.error('No image in response. Full response:', JSON.stringify(data, null, 2));
       return new Response(
         JSON.stringify({ error: 'No image generated in response', details: data }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const imageUrl = `data:${inlineData.mimeType || 'image/png'};base64,${inlineData.data}`;
 
     console.log('Floor plan image generated successfully');
 
