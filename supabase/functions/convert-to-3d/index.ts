@@ -18,86 +18,61 @@ serve(async (req) => {
       throw new Error("Image URL is required");
     }
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) {
-      console.error("GEMINI_API_KEY is not configured");
-      throw new Error("GEMINI_API_KEY is not configured. Please set it in your Supabase project settings.");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY is not configured");
+      throw new Error("LOVABLE_API_KEY is not configured.");
     }
 
-    console.log('Converting floor plan to isometric 3D with Gemini 2.5 Flash Image');
+    console.log('Converting floor plan to isometric 3D with Lovable AI (Nano banana)');
 
-    // Extract base64 data from data URL if present
-    let imageData = imageUrl;
-    let mimeType = 'image/png';
-    
-    if (imageUrl.startsWith('data:')) {
-      const matches = imageUrl.match(/^data:(.+?);base64,(.+)$/);
-      if (matches) {
-        mimeType = matches[1];
-        imageData = matches[2];
-      }
-    } else {
-      // If it's a URL, fetch the image and convert to base64
-      const imageResponse = await fetch(imageUrl);
-      const imageBuffer = await imageResponse.arrayBuffer();
-      imageData = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
-    }
-
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${GEMINI_API_KEY}`, {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        contents: [{
+        model: "google/gemini-2.5-flash-image",
+        messages: [{
           role: "user",
-          parts: [
+          content: [
             {
+              type: "text",
               text: prompt || `Convert this 2D architectural floor plan into an isometric 3D view with proper perspective, depth, and architectural details.`
             },
             {
-              inlineData: {
-                mimeType: mimeType,
-                data: imageData
+              type: "image_url",
+              image_url: {
+                url: imageUrl
               }
             }
           ]
         }],
-        generationConfig: {
-          temperature: 0.4,
-          responseModalities: ["IMAGE", "TEXT"]
-        }
+        modalities: ["image", "text"]
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Gemini API error:", response.status, errorText);
+      console.error("Lovable AI error:", response.status, errorText);
       let details = errorText;
       try {
         const parsed = JSON.parse(errorText);
         details = parsed.error?.message || errorText;
       } catch (_) {}
       return new Response(
-        JSON.stringify({ error: "Gemini API error", details }),
+        JSON.stringify({ error: "Lovable AI error", details }),
         { status: response.status || 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const data = await response.json();
-    console.log('Gemini API response received for 3D conversion');
+    console.log('Lovable AI response received for 3D conversion');
 
-    const candidates = data.candidates || [];
-    let inlineData: any = undefined;
-    for (const cand of candidates) {
-      const parts = cand.content?.parts || [];
-      for (const part of parts) {
-        if (part.inlineData?.data) { inlineData = part.inlineData; break; }
-      }
-      if (inlineData) break;
-    }
+    const convertedImageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
-    if (!inlineData?.data) {
+    if (!convertedImageUrl) {
       console.error('No image in response. Full response:', JSON.stringify(data, null, 2));
       return new Response(
         JSON.stringify({ error: 'No 3D image generated in response', details: data }),
@@ -105,7 +80,6 @@ serve(async (req) => {
       );
     }
 
-    const convertedImageUrl = `data:${inlineData.mimeType || 'image/png'};base64,${inlineData.data}`;
     console.log('3D conversion successful');
 
     return new Response(
