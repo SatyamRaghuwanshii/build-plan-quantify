@@ -14,10 +14,10 @@ serve(async (req) => {
   try {
     const { prompt, rooms, sqft, style } = await req.json();
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
-      throw new Error("LOVABLE_API_KEY is not configured.");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
+      console.error("GEMINI_API_KEY is not configured");
+      throw new Error("GEMINI_API_KEY not configured. Please add it in Supabase Edge Functions secrets.");
     }
 
     // Construct detailed prompt for image generation
@@ -52,42 +52,62 @@ LAYOUT STANDARDS:
 
 Style: Clean architectural drafting, professional, black and white technical drawing.`;
 
-    console.log('Generating floor plan image with Lovable AI (Nano banana)');
+    console.log('Generating floor plan image with Gemini 2.5 Flash Image');
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        messages: [{
-          role: "user",
-          content: basePrompt
-        }],
-        modalities: ["image", "text"]
-      }),
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: basePrompt }]
+          }],
+          generationConfig: {
+            temperature: 0.4,
+            responseMimeType: "image/png"
+          }
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Lovable AI error:", response.status, errorText);
-      let details = errorText;
-      try {
-        const parsed = JSON.parse(errorText);
-        details = parsed.error?.message || errorText;
-      } catch (_) {}
+      console.error("Gemini API error:", response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ 
+            error: "Rate limit exceeded", 
+            details: "Gemini API rate limit reached. Please wait a moment and try again, or upgrade your quota at https://aistudio.google.com/apikey" 
+          }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
       return new Response(
-        JSON.stringify({ error: "Lovable AI error", details }),
+        JSON.stringify({ error: "Gemini API error", details: errorText }),
         { status: response.status || 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const data = await response.json();
-    console.log('Lovable AI response received');
+    console.log('Gemini response received');
 
-    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    const imageData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    const mimeType = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.mimeType || "image/png";
+    
+    if (!imageData) {
+      console.error('No image in response. Full response:', JSON.stringify(data, null, 2));
+      return new Response(
+        JSON.stringify({ error: 'No image generated in response', details: data }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const imageUrl = `data:${mimeType};base64,${imageData}`;
 
     if (!imageUrl) {
       console.error('No image in response. Full response:', JSON.stringify(data, null, 2));
