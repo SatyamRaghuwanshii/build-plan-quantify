@@ -66,8 +66,7 @@ Style: Clean architectural drafting, professional, black and white technical dra
             parts: [{ text: basePrompt }]
           }],
           generationConfig: {
-            temperature: 0.4,
-            responseMimeType: "image/png"
+            temperature: 0.4
           }
         }),
       }
